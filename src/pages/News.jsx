@@ -1,231 +1,60 @@
-import React, { useState } from 'react';
+
 import { Calendar, Clock, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
-
+import { useState, useEffect } from 'react';
+import axiosInstance from '../api/axios';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import { useNavigate } from 'react-router-dom';
 
-const featuredSlides = [
-  {
-    id: 1,
-    title: 'अर्थमन्त्री वर्षमान पुनको अन्तर्राष्ट्रिय भेटघाट',
-    excerpt: 'विश्व बैंक र IMF सँग नेपालको लगानी वातावरणबारे छलफल...',
-    image: 'https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=809080827920538',
-  },
-  {
-    id: 2,
-    title: 'नेपाल लगानीका लागि आकर्षक गन्तव्य: अर्थमन्त्री',
-    excerpt: 'अन्तर्राष्ट्रिय लगानीकर्ताहरूसँग द्विपक्षीय वार्ता...',
-    image: 'https://annapurnaexpress.prixacdn.net/media/albums/Barshaman_Pun_vZv3y8WnXG.jpg',
-  },
-  {
-    id: 3,
-    title: 'नेप्से सूचकांकमा उतारचढावको इतिहास',
-    excerpt: 'बजारको वृद्धि र गिरावटको विस्तृत विश्लेषण...',
-    image: 'https://s3.tradingview.com/snapshots/y/yb1NxnSy.png',
-  },
-  {
-    id: 4,
-    title: 'नेपालमा विदेशी प्रत्यक्ष लगानी (FDI) को अवलोकन',
-    excerpt: 'पछिल्ला वर्षहरूमा FDI को वृद्धि दर र क्षेत्रहरू...',
-    image: 'https://nepaleconomicforum.org/wp-content/uploads/2022/03/Screenshot-2022-03-07-at-2.57.59-PM-1024x550.png',
-  },
-];
 
-const mockPosts = [
-  {
-    id: 1,
-    title: 'नेपालको अर्थतन्त्रमा नयाँ अवसरहरू',
-    excerpt: 'सरकारले नयाँ नीति लागू गरेपछि लगानीकर्ताहरू उत्साहित भएका छन्...',
-    date: '२०८२ पुष ३',
-    time: '२ घण्टा अघि',
-    thumbnail: 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg',
-  },
-  {
-    id: 2,
-    title: 'अन्तर्वार्ता: अर्थमन्त्रीसँग विशेष कुराकानी',
-    excerpt: 'अर्थमन्त्रीले बजेटका प्राथमिकताहरू बारे विस्तृतमा बताउनुभयो...',
-    date: '२०८२ पुष २',
-    time: '५ घण्टा अघि',
-    thumbnail: 'https://www.researchgate.net/publication/377637443/figure/fig1/AS:11431281219652215@1706098068289/NEPSE-Combined-chart-of-Candle-Sticks-BB-and-MACD.jpg',
-  },
-  {
-    id: 3,
-    title: 'विदेशी लगानी बढ्दो क्रममा',
-    excerpt: 'यो वर्ष नेपालमा विदेशी लगानी ३० प्रतिशतले बढेको छ...',
-    date: '२०८२ पुष १',
-    time: '१ दिन अघि',
-    thumbnail: 'https://figures.semanticscholar.org/6541ac3c1f1ad4d3e3abc7e017266cadf01b2aef/12-Figure2-1.png',
-  },
-  {
-    id: 4,
-    title: 'स्टक मार्केटको अवस्था',
-    excerpt: 'नेप्से सूचकांकमा सुधार देखिएको छ...',
-    date: '२०८१ मंसिर ३०',
-    time: '२ दिन अघि',
-    thumbnail: 'https://www.investopaper.com/wp-content/uploads/2020/04/nepse-index.jpg',
-  },
-  {
-    id: 5,
-    title: 'नयाँ बजेटमा कर सुधारका प्रस्ताव',
-    excerpt: 'कर प्रणालीलाई सरल र पारदर्शी बनाउने योजना सार्वजनिक...',
-    date: '२०८१ मंसिर २९',
-    time: '३ दिन अघि',
-    thumbnail: 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg',
-  },
-  {
-    id: 6,
-    title: 'औद्योगिक क्षेत्रमा ठूलो लगानी',
-    excerpt: 'निजी क्षेत्रको सहभागितासँगै नयाँ उद्योगहरू स्थापना हुँदै...',
-    date: '२०८१ मंसिर २८',
-    time: '४ दिन अघि',
-    thumbnail: 'https://www.investopaper.com/wp-content/uploads/2020/04/nepse-index.jpg',
-  },
-  {
-    id: 7,
-    title: 'नेप्सेमा रेकर्ड तोड्ने कारोबार',
-    excerpt: 'एकै दिन १५ अर्बभन्दा बढीको शेयर कारोबार...',
-    date: '२०८१ मंसिर २७',
-    time: '५ दिन अघि',
-    thumbnail: 'https://s3.tradingview.com/snapshots/y/yb1NxnSy.png',
-  },
-  {
-    id: 8,
-    title: 'हाइड्रोपावर कम्पनीहरूको आकर्षक लाभांश',
-    excerpt: 'लगानीकर्ताहरूले राम्रो प्रतिफल पाउने अपेक्षा...',
-    date: '२०८१ मंसिर २६',
-    time: '१ हप्ता अघि',
-    thumbnail: 'https://nepaleconomicforum.org/wp-content/uploads/2022/03/Screenshot-2022-03-07-at-2.57.59-PM-1024x550.png',
-  },
-  {
-    id: 9,
-    title: 'बैंकहरूले ब्याजदर घटाए',
-    excerpt: 'कर्जाको माग बढाउन ब्याजदरमा कटौती...',
-    date: '२०८१ मंसिर २५',
-    time: '१ हप्ता अघि',
-    thumbnail: 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg',
-  },
-  {
-    id: 10,
-    title: 'राष्ट्र बैंकको मौद्रिक नीति समीक्षा',
-    excerpt: 'अर्थतन्त्रलाई चलायमान बनाउन नयाँ निर्देशन...',
-    date: '२०८१ मंसिर २४',
-    time: '१० दिन अघि',
-    thumbnail: 'https://www.researchgate.net/publication/377637443/figure/fig1/AS:11431281219652215@1706098068289/NEPSE-Combined-chart-of-Candle-Sticks-BB-and-MACD.jpg',
-  },
-  {
-    id: 11,
-    title: 'आईपीओ बजारमा उत्साह',
-    excerpt: 'सामान्य लगानीकर्ताले पनि अवसर पाउने गरी नयाँ नियम...',
-    date: '२०८१ मंसिर २३',
-    time: '११ दिन अघि',
-    thumbnail: 'https://figures.semanticscholar.org/6541ac3c1f1ad4d3e3abc7e017266cadf01b2aef/12-Figure2-1.png',
-  },
-  {
-    id: 12,
-    title: 'पर्यटन क्षेत्रमा लगानीको लहर',
-    excerpt: 'विदेशी कम्पनीहरूले होटल तथा रिसोर्टमा चासो देखाएका छन्...',
-    date: '२०८१ मंसिर २२',
-    time: '१२ दिन अघि',
-    thumbnail: 'https://annapurnaexpress.prixacdn.net/media/albums/Barshaman_Pun_vZv3y8WnXG.jpg',
-  },
-  {
-    id: 13,
-    title: 'सेयर बजारमा नयाँ लगानीकर्ताको प्रवेश',
-    excerpt: 'डिम्याट खाता खोल्नेको संख्या रेकर्ड स्तरमा...',
-    date: '२०८१ मंसिर २१',
-    time: '२ हप्ता अघि',
-    thumbnail: 'https://www.investopaper.com/wp-content/uploads/2020/04/nepse-index.jpg',
-  },
-  {
-    id: 14,
-    title: 'वित्तीय क्षेत्रको डिजिटलाइजेशन',
-    excerpt: 'अनलाइन बैंकिङ र मोबाइल वालेटको प्रयोग बढ्दो...',
-    date: '२०८१ मंसिर २०',
-    time: '२ हप्ता अघि',
-    thumbnail: 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg',
-  },
-  {
-    id: 15,
-    title: 'मुद्रास्फीति नियन्त्रणमा',
-    excerpt: 'राष्ट्र बैंकका कदमले मूल्यवृद्धि दर घटेको छ...',
-    date: '२०८१ मंसिर १९',
-    time: '१५ दिन अघि',
-    thumbnail: 'https://s3.tradingview.com/snapshots/y/yb1NxnSy.png',
-  },
-  {
-    id: 16,
-    title: 'निर्यातमा सकारात्मक संकेत',
-    excerpt: 'हस्तकला र जडीबुटीको माग विदेशमा बढ्दो...',
-    date: '२०८१ मंसिर १८',
-    time: '१६ दिन अघि',
-    thumbnail: 'https://nepaleconomicforum.org/wp-content/uploads/2022/03/Screenshot-2022-03-07-at-2.57.59-PM-1024x550.png',
-  },
-  {
-    id: 17,
-    title: 'साना तथा मझौला उद्यमलाई सहुलियत कर्जा',
-    excerpt: 'स्टार्टअपहरूका लागि विशेष प्याकेज घोषणा...',
-    date: '२०८१ मंसिर १७',
-    time: '१७ दिन अघि',
-    thumbnail: 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg',
-  },
-  {
-    id: 18,
-    title: 'बजार विश्लेषण: कुन सेक्टरमा लगानी गर्ने?',
-    excerpt: 'विशेषज्ञहरूको सुझाव अनुसार आकर्षक क्षेत्रहरू...',
-    date: '२०८१ मंसिर १६',
-    time: '१८ दिन अघि',
-    thumbnail: 'https://www.investopaper.com/wp-content/uploads/2020/04/nepse-index.jpg',
-  },
-  {
-    id: 19,
-    title: 'विश्व अर्थतन्त्रको प्रभाव नेपालमा',
-    excerpt: 'अमेरिकी ब्याजदर घट्दा नेपाली बजारमा सकारात्मक असर...',
-    date: '२०८१ मंसिर १५',
-    time: '३ हप्ता अघि',
-    thumbnail: 'https://s3.tradingview.com/snapshots/y/yb1NxnSy.png',
-  },
-  {
-    id: 20,
-    title: 'आगामी बजेटका अपेक्षा',
-    excerpt: 'निजी क्षेत्रले पूर्वाधार र शिक्षा क्षेत्रमा जोड दिन आग्रह...',
-    date: '२०८१ मंसिर १४',
-    time: '३ हप्ता अघि',
-    thumbnail: 'https://annapurnaexpress.prixacdn.net/media/albums/Barshaman_Pun_vZv3y8WnXG.jpg',
-  },
-  {
-    id: 21,
-    title: 'क्रिप्टोकरेंसीको नियमन बारे छलफल',
-    excerpt: 'राष्ट्र बैंकले नयाँ नीति बनाउने तयारी...',
-    date: '२०८१ मंसिर १३',
-    time: '१ महिना अघि',
-    thumbnail: 'https://www.researchgate.net/publication/377637443/figure/fig1/AS:11431281219652215@1706098068289/NEPSE-Combined-chart-of-Candle-Sticks-BB-and-MACD.jpg',
-  },
-  {
-    id: 22,
-    title: 'रेमिट्यान्समा नयाँ रेकर्ड',
-    excerpt: 'वैदेशिक रोजगारीबाट प्राप्त रेमिट्यान्समा उल्लेख्य वृद्धि...',
-    date: '२०८१ मंसिर १२',
-    time: '१ महिना अघि',
-    thumbnail: 'https://figures.semanticscholar.org/6541ac3c1f1ad4d3e3abc7e017266cadf01b2aef/12-Figure2-1.png',
-  },
-];
-
-const trendingPosts = mockPosts.slice(0, 3);
-const popularPosts = mockPosts.slice(3, 6);
 
 function News() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('list');
   const [currentPage, setCurrentPage] = useState(1);
-  const postsPerPage = 12; // Now showing 12 posts per page (10-15 visible on most screens)
+  const [newsList, setNewsList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const postsPerPage = 12;
 
-  // Pagination logic
-  const totalPages = Math.ceil(mockPosts.length / postsPerPage);
+  // Fetch news from backend
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/news');
+      setNewsList(response.data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load news');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Prepare featured slides from news data
+  const featuredSlides = newsList.slice(0, 4).map(news => ({
+    id: news.id,
+    title: news.title,
+    excerpt: news.subtitle || news.paragraph?.substring(0, 100) + '...' || '',
+    image: news.image?.startsWith('http') ? news.image : `http://localhost:5000${news.image}`
+  }));
+
+  const trendingPosts = newsList.slice(0, 3);
+  const popularPosts = newsList.slice(3, 6);
+  
+// Pagination logic
+  const totalPages = Math.ceil(newsList.length / postsPerPage);
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = mockPosts.slice(indexOfFirstPost, indexOfLastPost);
+  const currentPosts = newsList.slice(indexOfFirstPost, indexOfLastPost);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -245,13 +74,58 @@ function News() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const publishedDate = new Date(date);
+    const diffInMs = now - publishedDate;
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    
+    if (diffInDays === 0) {
+      if (diffInHours === 0) return 'भर्खरै';
+      return `${diffInHours} घण्टा अघि`;
+    }
+    if (diffInDays === 1) return '१ दिन अघि';
+    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
+    return `${Math.floor(diffInDays / 30)} महिना अघि`;
+  };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading news...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-xl">{error}</p>
+          <button 
+            onClick={fetchNews}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Featured Slider */}
 <section className="my-12">
+  {featuredSlides.length > 0 && (
   <div className="relative rounded-2xl overflow-hidden shadow-2xl h-[450px] md:h-[550px] lg:h-[650px]">
     {/* Swiper */}
     <Swiper
@@ -268,8 +142,8 @@ function News() {
       className="h-full w-full"
     >
       {featuredSlides.map((slide) => (
-        <SwiperSlide key={slide.id}>
-          <div className="relative h-full w-full">
+        <SwiperSlide key={slide.id}> onClick={() => navigate(`/news/${slide.id}`)}
+          <div className="relative h-full w-full cursor-pointer">
             <img
               src={slide.image}
               alt={slide.title}
@@ -303,6 +177,7 @@ function News() {
       <ChevronRight size={20} className="md:size-20 text-gray-800" />
     </button>
   </div>
+  )}
 </section>
 
         {/* Main Content Area */}
@@ -332,12 +207,13 @@ function News() {
               {currentPosts.map((post) => (
                 <article
                   key={post.id}
+                  onClick={() => navigate(`/news/${post.id}`)}
                   className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden ${
                     viewMode === 'list' ? 'flex gap-8' : ''
                   }`}
                 >
                   <img
-                    src={post.thumbnail}
+                    src={post.image?.startsWith('http') ? post.image : `http://localhost:5000${post.image}`}
                     alt={post.title}
                     className={`${
                       viewMode === 'list'
@@ -346,20 +222,30 @@ function News() {
                     }`}
                   />
                   <div className="p-8 flex-1">
-                    <h4 className="text-2xl font-bold mb-4 hover:text-red-700 cursor-pointer transition">
+                    <h4 
+                      className="text-2xl font-bold mb-4 hover:text-red-700 cursor-pointer transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/news/${post.id}`);
+                      }}
+                    >
                       {post.title}
                     </h4>
                     <p className="text-gray-600 mb-6 text-lg leading-relaxed">{post.excerpt}</p>
-                    <div className="flex items-center text-sm text-gray-500 space-x-6">
-                      <span className="flex items-center gap-2">
-                        <Calendar size={18} />
-                        {post.date}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Clock size={18} />
-                        {post.time}
-                      </span>
-                    </div>
+                  <div className="flex items-center text-sm text-gray-500 space-x-6">
+                    <span className="flex items-center gap-2">
+                      <Calendar size={18} />
+                      {new Date(post.publishedDate).toLocaleDateString('ne-NP', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Clock size={18} />
+                      {getTimeAgo(post.publishedDate)}
+                    </span>
+                  </div>
                   </div>
                 </article>
               ))}
@@ -416,9 +302,12 @@ function News() {
                       <span className="text-3xl font-extrabold text-gray-200">{index + 1}</span>
                       <div className="flex-1">
                         <p className="font-semibold text-lg hover:text-red-700 cursor-pointer transition">
-                          {post.title}
+                        <button onClick={() => navigate(`/news/${post.id}`)}>
+                         
+                        </button>
+                         {post.title}
                         </p>
-                        <span className="text-sm text-gray-500 mt-1 block">{post.time}</span>
+                        <span className="text-sm text-gray-500 mt-1 block">{getTimeAgo(post.publishedDate)}</span>
                       </div>
                     </li>
                   ))}
@@ -429,15 +318,20 @@ function News() {
                 <h3 className="text-2xl font-bold mb-6 text-red-700">लोकप्रिय</h3>
                 <div className="space-y-6">
                   {popularPosts.map((post) => (
-                    <div key={post.id} className="flex gap-4">
+                    <div 
+                        key={post.id} 
+                        className="flex gap-4 cursor-pointer group"
+                        onClick={() => navigate(`/news/${post.id}`)}
+                      >
+                        
                       <img
-                        src={post.thumbnail}
+                        src={post.image?.startsWith('http') ? post.image : `http://localhost:5000${post.image}`}
                         alt={post.title}
                         className="w-24 h-20 object-cover rounded-xl"
                       />
-                      <p className="font-medium hover:text-red-700 cursor-pointer transition">
-                        {post.title}
-                      </p>
+                    <p className="font-medium group-hover:text-red-700 transition">
+                    {post.title}
+                  </p>
                     </div>
                   ))}
                 </div>

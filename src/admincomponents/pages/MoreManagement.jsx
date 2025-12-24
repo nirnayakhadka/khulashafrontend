@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo, Type, Save, X, Edit, Trash2, Image, User, FileText } from 'lucide-react';
-import AdminNav from '../components/AdminNav';
+import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo, Type, Save, X, Edit, Trash2, Image, User, FileText, Eye } from 'lucide-react';
+import axiosInstance from '../../api/axios';
+import { useAuth } from '../../context/AuthContext';
 
-const API_BASE_URL = 'http://localhost:5000/api/more';
 
 const RichTextEditor = ({ value, onChange, placeholder }) => {
   const editorRef = useRef(null);
@@ -30,65 +30,33 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
   return (
     <div className={`border-2 rounded-xl overflow-hidden transition-all ${isFocused ? 'border-purple-500 shadow-lg' : 'border-gray-300'}`}>
       <div className="bg-gray-50 border-b border-gray-200 p-2 flex flex-wrap gap-1">
-        <button
-          onClick={() => execCommand('bold')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Bold"
-        >
+        <button onClick={() => execCommand('bold')} className="p-2 hover:bg-gray-200 rounded transition" title="Bold">
           <Bold size={18} />
         </button>
-        <button
-          onClick={() => execCommand('italic')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Italic"
-        >
+        <button onClick={() => execCommand('italic')} className="p-2 hover:bg-gray-200 rounded transition" title="Italic">
           <Italic size={18} />
         </button>
-        <button
-          onClick={() => execCommand('underline')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Underline"
-        >
+        <button onClick={() => execCommand('underline')} className="p-2 hover:bg-gray-200 rounded transition" title="Underline">
           <Underline size={18} />
         </button>
-        <div className="w-px bg-gray-300 mx-1"></div>
-        <button
-          onClick={() => execCommand('insertUnorderedList')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Bullet List"
-        >
+        <div className="w-px bg-gray-300 mx-1" />
+        <button onClick={() => execCommand('insertUnorderedList')} className="p-2 hover:bg-gray-200 rounded transition" title="Bullet List">
           <List size={18} />
         </button>
-        <button
-          onClick={() => execCommand('insertOrderedList')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Numbered List"
-        >
+        <button onClick={() => execCommand('insertOrderedList')} className="p-2 hover:bg-gray-200 rounded transition" title="Numbered List">
           <ListOrdered size={18} />
         </button>
-        <div className="w-px bg-gray-300 mx-1"></div>
-        <button
-          onClick={() => execCommand('justifyLeft')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Align Left"
-        >
+        <div className="w-px bg-gray-300 mx-1" />
+        <button onClick={() => execCommand('justifyLeft')} className="p-2 hover:bg-gray-200 rounded transition" title="Align Left">
           <AlignLeft size={18} />
         </button>
-        <button
-          onClick={() => execCommand('justifyCenter')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Align Center"
-        >
+        <button onClick={() => execCommand('justifyCenter')} className="p-2 hover:bg-gray-200 rounded transition" title="Align Center">
           <AlignCenter size={18} />
         </button>
-        <button
-          onClick={() => execCommand('justifyRight')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Align Right"
-        >
+        <button onClick={() => execCommand('justifyRight')} className="p-2 hover:bg-gray-200 rounded transition" title="Align Right">
           <AlignRight size={18} />
         </button>
-        <div className="w-px bg-gray-300 mx-1"></div>
+        <div className="w-px bg-gray-300 mx-1" />
         <select
           onChange={(e) => execCommand('fontSize', e.target.value)}
           className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-200 transition"
@@ -99,18 +67,10 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
           <option value="5">Large</option>
           <option value="7">Huge</option>
         </select>
-        <button
-          onClick={() => execCommand('undo')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Undo"
-        >
+        <button onClick={() => execCommand('undo')} className="p-2 hover:bg-gray-200 rounded transition" title="Undo">
           <Undo size={18} />
         </button>
-        <button
-          onClick={() => execCommand('redo')}
-          className="p-2 hover:bg-gray-200 rounded transition"
-          title="Redo"
-        >
+        <button onClick={() => execCommand('redo')} className="p-2 hover:bg-gray-200 rounded transition" title="Redo">
           <Redo size={18} />
         </button>
       </div>
@@ -122,9 +82,7 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
         onBlur={() => setIsFocused(false)}
         className="p-4 min-h-[200px] max-h-[400px] overflow-y-auto focus:outline-none bg-white"
         data-placeholder={placeholder}
-        style={{
-          wordWrap: 'break-word',
-        }}
+        style={{ wordWrap: 'break-word' }}
       />
       <style>{`
         [contenteditable]:empty:before {
@@ -134,11 +92,11 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
         }
       `}</style>
     </div>
-  
   );
 };
 
 const MoreManagement = () => {
+  const { logout, isAuthenticated } = useAuth();
   const [articlesList, setArticlesList] = useState([]);
   const [formData, setFormData] = useState({
     imageFile: null,
@@ -164,16 +122,15 @@ const MoreManagement = () => {
     fetchArticles();
   }, []);
 
-  const fetchArticles = async () => {
-    try {
-      const response = await fetch(API_BASE_URL);
-      const data = await response.json();
-      setArticlesList(data);
-    } catch (error) {
-      showToast('Error fetching articles', 'error');
-      console.error('Fetch error:', error);
-    }
-  };
+const fetchArticles = async () => {
+  try {
+    const response = await axiosInstance.get('/more');
+    setArticlesList(response.data);
+  } catch (error) {
+    showToast('Error fetching articles', 'error');
+    console.error('Fetch error:', error);
+  }
+};
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -222,54 +179,77 @@ const MoreManagement = () => {
     e.stopPropagation();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const formDataToSend = new FormData();
-      
-      if (formData.imageFile) {
-        formDataToSend.append('image', formData.imageFile);
-      }
-      if (formData.journalistImageFile) {
-        formDataToSend.append('journalistImage', formData.journalistImageFile);
-      }
-      
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('subtitle', formData.subtitle);
-      formDataToSend.append('paragraph', formData.paragraph);
-      formDataToSend.append('journalistName', formData.journalistName);
-      
-      if (formData.publishedDate) {
-        formDataToSend.append('publishedDate', formData.publishedDate);
-      }
+  if (!isAuthenticated()) {
+    showToast('Please login first', 'error');
+    return;
+  }
 
-      const url = editingId ? `${API_BASE_URL}/${editingId}` : API_BASE_URL;
-      const method = editingId ? 'PUT' : 'POST';
+  // Validation
+  if (!formData.title.trim()) {
+    showToast('Please enter a title', 'error');
+    return;
+  }
 
-      const response = await fetch(url, {
-        method: method,
-        body: formDataToSend,
+  if (!formData.journalistName.trim()) {
+    showToast('Please enter journalist name', 'error');
+    return;
+  }
+
+  if (!editingId && !formData.imageFile) {
+    showToast('Please upload a cover image', 'error');
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const formDataToSend = new FormData();
+    
+    if (formData.imageFile) formDataToSend.append('image', formData.imageFile);
+    if (formData.journalistImageFile) formDataToSend.append('journalistImage', formData.journalistImageFile);
+    
+    formDataToSend.append('title', formData.title);
+    formDataToSend.append('subtitle', formData.subtitle || '');
+    formDataToSend.append('paragraph', formData.paragraph || '');
+    formDataToSend.append('journalistName', formData.journalistName || '');
+    formDataToSend.append('publishedDate', formData.publishedDate || new Date().toISOString());
+
+    if (editingId) {
+      await axiosInstance.put(`/more/${editingId}`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to save article');
-      }
-
-      showToast(editingId ? 'Article updated successfully!' : 'Article created successfully!');
-      await fetchArticles();
-      resetForm();
-      setShowForm(false);
-    } catch (error) {
-      showToast(error.message || 'Error saving article', 'error');
-      console.error('Submit error:', error);
-    } finally {
-      setLoading(false);
+      showToast('Article updated successfully!');
+    } else {
+      await axiosInstance.post('/more', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      showToast('Article created successfully!');
     }
-  };
+
+    await fetchArticles();
+    resetForm();
+    setShowForm(false);
+  } catch (error) {
+    console.error('Submit error:', error);
+    const message = error.response?.data?.message || error.message || 'Error saving article';
+    showToast(message, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleEdit = (article) => {
+      if (!isAuthenticated()) {
+        showToast('Please login first', 'error');
+        return;
+      }
     setEditingId(article.id);
     setFormData({
       imageFile: null,
@@ -288,25 +268,24 @@ const MoreManagement = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this article?')) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/${id}`, {
-          method: 'DELETE',
-        });
+const handleDelete = async (id) => {
+  if (!isAuthenticated()) {
+    showToast('Please login first', 'error');
+    return;
+  }
 
-        if (!response.ok) {
-          throw new Error('Failed to delete article');
-        }
-
-        showToast('Article deleted successfully!');
-        await fetchArticles();
-      } catch (error) {
-        showToast(error.message || 'Error deleting article', 'error');
-        console.error('Delete error:', error);
-      }
+  if (window.confirm('Are you sure you want to delete this article?')) {
+    try {
+      await axiosInstance.delete(`/more/${id}`);
+      showToast('Article deleted successfully!');
+      await fetchArticles();
+    } catch (error) {
+      console.error('Delete error:', error);
+      const message = error.response?.data?.message || error.message || 'Error deleting article';
+      showToast(message, 'error');
     }
-  };
+  }
+};
 
   const resetForm = () => {
     setEditingId(null);
@@ -327,15 +306,18 @@ const MoreManagement = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50">
-
+      {/* Toast */}
       {toast.show && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transform transition-all duration-300 ${
-          toast.type === 'success' ? 'bg-purple-500' : 'bg-red-500'
-        } text-white font-medium`}>
+        <div
+          className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transform transition-all duration-300 ${
+            toast.type === 'success' ? 'bg-purple-500' : 'bg-red-500'
+          } text-white font-medium`}
+        >
           {toast.message}
         </div>
       )}
-       
+
+      {/* Header */}
       <div className="bg-white shadow-md border-b-4 border-purple-500">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
@@ -358,6 +340,7 @@ const MoreManagement = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Create/Edit Form */}
         {showForm && (
           <div className="bg-white rounded-2xl shadow-2xl p-8 mb-12 border-t-4 border-purple-500 animate-fadeIn">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
@@ -520,70 +503,237 @@ const MoreManagement = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articlesList.map((article) => (
-            <div
-              key={article.id}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 border-t-4 border-purple-400 group"
-            >
-              {article.image && (
-                <div className="relative overflow-hidden">
-                  <img
-                    src={`http://localhost:5000${article.image}`}
-                    alt={article.title}
-                    className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              )}
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-purple-600 transition">
-                  {article.title}
-                </h3>
-                {article.subtitle && (
-                  <p className="text-gray-600 mb-3 text-sm line-clamp-2">{article.subtitle}</p>
-                )}
-                {article.paragraph && (
-                  <div 
-                    className="text-gray-700 text-sm mb-4 line-clamp-3" 
-                    dangerouslySetInnerHTML={{ __html: article.paragraph }}
-                  />
-                )}
-                <div className="flex items-center text-sm text-gray-500 mb-4 pb-4 border-b border-gray-200">
-                  {article.journalistImage && (
-                    <img
-                      src={`http://localhost:5000${article.journalistImage}`}
-                      alt={article.journalistName}
-                      className="w-10 h-10 rounded-full mr-3 object-cover border-2 border-purple-200"
-                    />
-                  )}
-                  <div>
-                    <p className="font-medium text-gray-700">{article.journalistName || 'Unknown'}</p>
-                    <p className="text-xs">{new Date(article.publishedDate).toLocaleDateString()}</p>
+        {/* Responsive Article Cards */}
+        {articlesList.length > 0 ? (
+          <div className="space-y-4">
+            {articlesList.map((article) => (
+              <article
+                key={article.id}
+                className="bg-white rounded-lg shadow hover:shadow-md transition-all border p-4"
+              >
+                {/* Desktop View - Full Horizontal Layout */}
+                <div className="hidden xl:flex items-start gap-4">
+                  {/* Small Image */}
+                  <div className="w-24 h-24 flex-shrink-0">
+                    {article.image ? (
+                      <img
+                        src={`http://localhost:5000${article.image}`}
+                        alt={article.title}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Image size={32} className="text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  {/* Divider */}
+                  <div className="w-px h-20 bg-gray-300 flex-shrink-0"></div>
+                  {/* Title */}
+                  <div className="flex-shrink-0 overflow-hidden" style={{ width: '200px' }}>
+                    <h3
+                      className="text-base font-bold text-gray-900 cursor-pointer hover:text-purple-600 transition line-clamp-2"
+                      onClick={() => alert('View not implemented yet')} // You can add view modal later
+                    >
+                      {article.title}
+                    </h3>
+                  </div>
+                  {/* Divider */}
+                  <div className="w-px h-20 bg-gray-300 flex-shrink-0"></div>
+                  {/* Description */}
+                  <div className="flex-shrink-0 overflow-hidden" style={{ width: '500px' }}>
+                    {article.subtitle && (
+                      <p className="text-sm text-gray-600 line-clamp-2">{article.subtitle}</p>
+                    )}
+                  </div>
+                  {/* Divider */}
+                  <div className="w-px h-20 bg-gray-300 flex-shrink-0"></div>
+                  {/* Journalist Info */}
+                  <div className="flex items-center gap-2 flex-shrink-0" style={{ width: '150px' }}>
+                    {article.journalistImage ? (
+                      <img
+                        src={`http://localhost:5000${article.journalistImage}`}
+                        alt={article.journalistName}
+                        className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <User size={16} className="text-gray-400" />
+                      </div>
+                    )}
+                    <div className="min-w-0 overflow-hidden">
+                      <p className="text-sm font-medium text-gray-900 truncate">{article.journalistName || 'Unknown'}</p>
+                    </div>
+                  </div>
+                  {/* Divider */}
+                  <div className="w-px h-20 bg-gray-300 flex-shrink-0"></div>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => alert('View not implemented yet')} // Add view modal if needed
+                      className="p-2 hover:bg-purple-50 rounded-lg transition text-purple-600"
+                      title="View"
+                    >
+                      <Eye size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(article)}
+                      className="p-2 hover:bg-purple-50 rounded-lg transition text-purple-600"
+                      title="Edit"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(article.id)}
+                      className="p-2 hover:bg-red-50 rounded-lg transition text-red-600"
+                      title="Delete"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleEdit(article)}
-                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl transition font-medium flex items-center justify-center gap-2 shadow-md"
-                  >
-                    <Edit size={16} />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(article.id)}
-                    className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl transition font-medium flex items-center justify-center gap-2 shadow-md"
-                  >
-                    <Trash2 size={16} />
-                    Delete
-                  </button>
+                {/* Tablet View - Compact Horizontal */}
+                <div className="hidden md:block xl:hidden">
+                  <div className="flex items-start gap-3">
+                    <div className="w-20 h-20 flex-shrink-0">
+                      {article.image ? (
+                        <img
+                          src={`http://localhost:5000${article.image}`}
+                          alt={article.title}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
+                          <Image size={24} className="text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <h3
+                        className="text-base font-bold text-gray-900 cursor-pointer hover:text-purple-600 transition line-clamp-2"
+                        onClick={() => alert('View not implemented yet')}
+                      >
+                        {article.title}
+                      </h3>
+                      {article.subtitle && (
+                        <p className="text-sm text-gray-600 line-clamp-2">{article.subtitle}</p>
+                      )}
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-2">
+                          {article.journalistImage ? (
+                            <img
+                              src={`http://localhost:5000${article.journalistImage}`}
+                              alt={article.journalistName}
+                              className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                              <User size={14} className="text-gray-400" />
+                            </div>
+                          )}
+                          <p className="text-sm font-medium text-gray-900 truncate">{article.journalistName || 'Unknown'}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => alert('View not implemented yet')}
+                            className="p-2 hover:bg-purple-50 rounded-lg transition text-purple-600"
+                            title="View"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(article)}
+                            className="p-2 hover:bg-purple-50 rounded-lg transition text-purple-600"
+                            title="Edit"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(article.id)}
+                            className="p-2 hover:bg-red-50 rounded-lg transition text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {articlesList.length === 0 && (
+                {/* Mobile View - Vertical Layout */}
+                <div className="md:hidden space-y-3">
+                  <div className="w-full h-48">
+                    {article.image ? (
+                      <img
+                        src={`http://localhost:5000${article.image}`}
+                        alt={article.title}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Image size={48} className="text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="h-px bg-gray-300"></div>
+                  <h3
+                    className="text-lg font-bold text-gray-900 cursor-pointer hover:text-purple-600 transition"
+                    onClick={() => alert('View not implemented yet')}
+                  >
+                    {article.title}
+                  </h3>
+                  <div className="h-px bg-gray-300"></div>
+                  {article.subtitle && (
+                    <>
+                      <p className="text-sm text-gray-600">{article.subtitle}</p>
+                      <div className="h-px bg-gray-300"></div>
+                    </>
+                  )}
+                  <div className="flex items-center gap-3">
+                    {article.journalistImage ? (
+                      <img
+                        src={`http://localhost:5000${article.journalistImage}`}
+                        alt={article.journalistName}
+                        className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                        <User size={20} className="text-gray-400" />
+                      </div>
+                    )}
+                    <p className="text-sm font-medium text-gray-900">{article.journalistName || 'Unknown'}</p>
+                  </div>
+                  <div className="h-px bg-gray-300"></div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => alert('View not implemented yet')}
+                      className="px-4 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition text-purple-600 flex items-center gap-2"
+                    >
+                      <Eye size={18} />
+                      <span className="text-sm font-medium">View</span>
+                    </button>
+                    <button
+                      onClick={() => handleEdit(article)}
+                      className="px-4 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition text-purple-600 flex items-center gap-2"
+                    >
+                      <Edit size={18} />
+                      <span className="text-sm font-medium">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(article.id)}
+                      className="px-4 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition text-red-600 flex items-center gap-2"
+                    >
+                      <Trash2 size={18} />
+                      <span className="text-sm font-medium">Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-16">
             <div className="text-gray-400 mb-4">
               <FileText size={64} className="mx-auto" />
@@ -603,21 +753,14 @@ const MoreManagement = () => {
 
       <style>{`
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
         }
       `}</style>
     </div>
-
   );
 };
 

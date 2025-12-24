@@ -15,6 +15,7 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
     );
   }
 
+
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }

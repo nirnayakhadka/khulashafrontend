@@ -1,40 +1,75 @@
-
-import React, { useState } from 'react';
+// MoreHome.jsx - Backend Integration
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
-
-const mockPosts = [
-  {
-    id: 1,
-    title: 'नेपालको अर्थतन्त्रमा नयाँ अवसरहरू',
-    excerpt: 'सरकारले नयाँ नीति लागू गरेपछि लगानीकर्ताहरू उत्साहित भएका छन्...',
-    date: '२०८२ पुष ३',
-    time: '२ घण्टा अघि',
-    thumbnail: 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg',
-  },
-    {
-    id: 2,
-    title: 'नेपालको अर्थतन्त्रमा नयाँ अवसरहरू',
-    excerpt: 'सरकारले नयाँ नीति लागू गरेपछि लगानीकर्ताहरू उत्साहित भएका छन्...',
-    date: '२०८२ पुष ३',
-    time: '२ घण्टा अघि',
-    thumbnail: 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg',
-  },
-  // ... (rest of your mockPosts array remains the same)
-];
-
-const trendingPosts = mockPosts.slice(0, 3);
-const popularPosts = mockPosts.slice(3, 6);
+import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../api/axios';
 
 const MoreHome = () => {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('list');
   const [currentPage, setCurrentPage] = useState(1);
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const postsPerPage = 12;
 
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const fetchArticles = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/more');
+      setArticles(response.data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load articles');
+      console.error('Error fetching articles:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getImageUrl = (image) => {
+    if (!image) return 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg';
+    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+  };
+
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const published = new Date(date);
+    const diffInMs = now - published;
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInDays === 0) {
+      if (diffInHours === 0) return 'भर्खरै';
+      return `${diffInHours} घण्टा अघि`;
+    }
+    if (diffInDays === 1) return '१ दिन अघि';
+    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
+    return `${Math.floor(diffInDays / 30)} महिना अघि`;
+  };
+
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('ne-NP', options);
+  };
+
+  const stripHtml = (html) => {
+    if (!html) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  };
+
   // Pagination logic
-  const totalPages = Math.ceil(mockPosts.length / postsPerPage);
+  const totalPages = Math.ceil(articles.length / postsPerPage);
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = mockPosts.slice(indexOfFirstPost, indexOfLastPost);
+  const currentPosts = articles.slice(indexOfFirstPost, indexOfLastPost);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -54,6 +89,56 @@ const MoreHome = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  // Trending and popular posts
+  const trendingPosts = articles.slice(0, 3);
+  const popularPosts = articles.slice(3, 6);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="mb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">समाचार लोड हुँदैछ...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="mb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="text-center py-12">
+            <p className="text-red-600 text-xl mb-4">{error}</p>
+            <button 
+              onClick={fetchArticles}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              पुन: प्रयास गर्नुहोस्
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (articles.length === 0) {
+    return (
+      <div className="mb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-xl">समाचार उपलब्ध छैन</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-20 px-4 sm:px-6 lg:px-8">
@@ -85,12 +170,13 @@ const MoreHome = () => {
               {currentPosts.map((post) => (
                 <article
                   key={post.id}
-                  className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden ${
+                  onClick={() => navigate(`/more/${post.id}`)}
+                  className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer ${
                     viewMode === 'list' ? 'flex gap-8' : ''
                   }`}
                 >
                   <img
-                    src={post.thumbnail}
+                    src={getImageUrl(post.image)}
                     alt={post.title}
                     className={`${
                       viewMode === 'list'
@@ -99,18 +185,20 @@ const MoreHome = () => {
                     }`}
                   />
                   <div className="p-8 flex-1">
-                    <h4 className="text-2xl font-bold mb-4 hover:text-red-700 cursor-pointer transition">
+                    <h4 className="text-2xl font-bold mb-4 hover:text-red-700 transition">
                       {post.title}
                     </h4>
-                    <p className="text-gray-600 mb-6 text-lg leading-relaxed">{post.excerpt}</p>
+                    <p className="text-gray-600 mb-6 text-lg leading-relaxed line-clamp-3">
+                      {post.subtitle || stripHtml(post.paragraph)?.substring(0, 150) + '...' || ''}
+                    </p>
                     <div className="flex items-center text-sm text-gray-500 space-x-6">
                       <span className="flex items-center gap-2">
                         <Calendar size={18} />
-                        {post.date}
+                        {formatDate(post.publishedDate)}
                       </span>
                       <span className="flex items-center gap-2">
                         <Clock size={18} />
-                        {post.time}
+                        {getTimeAgo(post.publishedDate)}
                       </span>
                     </div>
                   </div>
@@ -161,47 +249,77 @@ const MoreHome = () => {
           {/* Right Sidebar */}
           <aside className="lg:w-1/4">
             <div className="lg:sticky lg:top-8 space-y-8">
-              <div className="bg-white rounded-2xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold mb-6 text-red-700">ट्रेन्डिङ</h3>
-                <ol className="space-y-6">
-                  {trendingPosts.map((post, index) => (
-                    <li key={post.id} className="flex gap-4">
-                      <span className="text-3xl font-extrabold text-gray-200">{index + 1}</span>
-                      <div className="flex-1">
-                        <p className="font-semibold text-lg hover:text-red-700 cursor-pointer transition">
+              {/* Trending Section */}
+              {trendingPosts.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-lg p-8">
+                  <h3 className="text-2xl font-bold mb-6 text-red-700">ट्रेन्डिङ</h3>
+                  <ol className="space-y-6">
+                    {trendingPosts.map((post, index) => (
+                      <li 
+                        key={post.id} 
+                        onClick={() => navigate(`/more/${post.id}`)}
+                        className="flex gap-4 cursor-pointer group"
+                      >
+                        <span className="text-3xl font-extrabold text-gray-200 group-hover:text-red-700 transition-colors">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="font-semibold text-lg hover:text-red-700 transition line-clamp-2">
+                            {post.title}
+                          </p>
+                          <span className="text-sm text-gray-500 mt-1 block">
+                            {getTimeAgo(post.publishedDate)}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* Popular Section */}
+              {popularPosts.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-lg p-8">
+                  <h3 className="text-2xl font-bold mb-6 text-red-700">लोकप्रिय</h3>
+                  <div className="space-y-6">
+                    {popularPosts.map((post) => (
+                      <div 
+                        key={post.id} 
+                        onClick={() => navigate(`/more/${post.id}`)}
+                        className="flex gap-4 cursor-pointer group"
+                      >
+                        <img
+                          src={getImageUrl(post.image)}
+                          alt={post.title}
+                          className="w-24 h-20 object-cover rounded-xl"
+                        />
+                        <p className="font-medium hover:text-red-700 transition line-clamp-2">
                           {post.title}
                         </p>
-                        <span className="text-sm text-gray-500 mt-1 block">{post.time}</span>
                       </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold mb-6 text-red-700">लोकप्रिय</h3>
-                <div className="space-y-6">
-                  {popularPosts.map((post) => (
-                    <div key={post.id} className="flex gap-4">
-                      <img
-                        src={post.thumbnail}
-                        alt={post.title}
-                        className="w-24 h-20 object-cover rounded-xl"
-                      />
-                      <p className="font-medium hover:text-red-700 cursor-pointer transition">
-                        {post.title}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
+              {/* Advertisement Section */}
               <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center">
                 <p className="text-gray-600 font-medium text-lg">विज्ञापन क्षेत्र</p>
                 <p className="text-sm text-gray-500 mt-2">३०० × ६००</p>
               </div>
             </div>
           </aside>
+        </div>
+
+        {/* View All Button */}
+        <div className="mt-12 text-center">
+          <button
+            onClick={() => navigate('/more')}
+            className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white font-semibold text-lg rounded-full hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+          >
+            सबै समाचार हेर्नुहोस्
+            <ChevronRight size={24} />
+          </button>
         </div>
       </div>
     </div>

@@ -1,7 +1,110 @@
-// LocalHome.jsx - स्थानीय Page
-import React from 'react';
+// LocalHome.jsx - स्थानीय Page with Backend Integration
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const LocalHome = () => {
+  const navigate = useNavigate();
+  const [localNews, setLocalNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchLocalNews();
+  }, []);
+
+  const fetchLocalNews = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/local');
+      if (!response.ok) throw new Error('Failed to fetch local news');
+      const data = await response.json();
+      setLocalNews(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load local news articles');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getImageUrl = (image) => {
+    if (!image) return 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=1200&q=80';
+    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+  };
+
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const published = new Date(date);
+    const diffInMs = now - published;
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInDays === 0) {
+      if (diffInHours === 0) return 'भर्खरै';
+      return `${diffInHours} घण्टा अघि`;
+    }
+    if (diffInDays === 1) return '१ दिन अघि';
+    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
+    return `${Math.floor(diffInDays / 30)} महिना अघि`;
+  };
+
+  // Featured news section (first 4 articles)
+  const featuredNews = localNews.slice(0, 4);
+
+  // Trending news section (next 6 articles)
+  const trendingNews = localNews.slice(4, 10);
+
+  // Most viewed section (next 6 articles)
+  const mostViewedNews = localNews.slice(10, 16);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="mb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">स्थानीय समाचार लोड हुँदैछ...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="mb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="text-center py-12">
+            <p className="text-red-600 text-xl mb-4">{error}</p>
+            <button 
+              onClick={fetchLocalNews}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              पुन: प्रयास गर्नुहोस्
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (localNews.length === 0) {
+    return (
+      <div className="mb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-xl">स्थानीय समाचार उपलब्ध छैन</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-[1600px] mx-auto">
@@ -11,6 +114,15 @@ const LocalHome = () => {
             स्थानीय
             <div className="h-1 w-32 bg-blue-600 rounded-full mt-4"></div>
           </h1>
+          <button 
+            onClick={() => navigate('/local')}
+            className="text-blue-600 font-medium flex items-center gap-2 hover:gap-4 transition-all"
+          >
+            थप हेर्नुहोस्
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
 
         {/* Main 3-Column Layout with Sticky Right Column */}
@@ -18,121 +130,114 @@ const LocalHome = () => {
           {/* Left + Middle Column: Feature News + Trending News (takes 2/3 width) */}
           <div className="lg:col-span-2 space-y-12">
             {/* Featured News Section */}
-            <div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {[
-                  {
-                    image: "https://images.unsplash.com/photo-1581092160607-798f1c6f3e1c?w=800",
-                    title: "काठमाडौं उपत्यकामा नयाँ मेट्रो रेल परियोजना सुरु",
-                    subtitle: "२०८३ सम्म सञ्चालनमा आउने",
-                    date: "२०८२ माघ १",
-                    source: "स्थानीय",
-                    video: true,
-                  },
-                  {
-                    image: "https://images.unsplash.com/photo-1556155092-490a1ba16284?w=800",
-                    title: "पोखरामा अन्तर्राष्ट्रिय पर्यटन सम्मेलन सफल",
-                    subtitle: "विश्वभरिका पर्यटन व्यवसायी सहभागी",
-                    date: "२०८२ माघ १",
-                    source: "स्थानीय",
-                  },
-                  {
-                    image: "https://images.unsplash.com/photo-1581093450021-4a7360e9a6b5?w=800",
-                    title: "भक्तपुरमा ३२औं दशैं महोत्सव सुरु",
-                    subtitle: "परम्परागत कला र संस्कृति प्रदर्शन",
-                    date: "२०८२ माघ १",
-                    source: "स्थानीय",
-                  },
-                  {
-                    image: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800",
-                    title: "ललितपुरमा नयाँ पार्क निर्माण सम्पन्न",
-                    subtitle: "स्थानीय बासिन्दालाई मनोरञ्जनको लागि",
-                    date: "२०८२ माघ १",
-                    source: "स्थानीय",
-                  },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer h-[380px]"
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                    <span className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold uppercase">
-                      {item.source}
-                    </span>
-                    {item.video && (
-                      <div className="absolute top-4 right-4 bg-red-600 text-white p-2 rounded-full">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
+            {featuredNews.length > 0 && (
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {featuredNews.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => navigate(`/local/${item.id}`)}
+                      className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer h-[380px]"
+                    >
+                      <img
+                        src={getImageUrl(item.image)}
+                        alt={item.title}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                      <span className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold uppercase">
+                        स्थानीय
+                      </span>
+                      {item.hasVideo && (
+                        <div className="absolute top-4 right-4 bg-red-600 text-white p-2 rounded-full">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <h3 className="text-2xl font-bold leading-tight mb-2 group-hover:text-blue-300 transition-colors">
+                          {item.title}
+                        </h3>
+                        <p className="text-sm text-gray-200 line-clamp-2">
+                          {item.subtitle || item.paragraph?.substring(0, 100) + '...' || ''}
+                        </p>
+                        <p className="text-xs mt-2 opacity-80">
+                          {new Date(item.publishedDate).toLocaleDateString('ne-NP', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
                       </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                      <h3 className="text-2xl font-bold leading-tight mb-2 group-hover:text-blue-300 transition-colors">
-                        {item.title}
-                      </h3>
-                      <p className="text-sm text-gray-200 line-clamp-2">{item.subtitle}</p>
-                      <p className="text-xs mt-2 opacity-80">{item.date}</p>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Trending News Section */}
-            <div className="mt-12">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  { title: "काठमाडौंमा ट्राफिक व्यवस्थापनमा सुधार", image: "https://images.unsplash.com/photo-1507679799987-93b5f9b7a7ec?w=600" },
-                  { title: "नयाँ बिजुली आयोजना निर्माण सुरु", image: "https://images.unsplash.com/photo-1581092160607-798f1c6f3e1c?w=600" },
-                  { title: "स्थानीय बजारमा मूल्यवृद्धि नियन्त्रण", image: "https://images.unsplash.com/photo-1552799446-159ba9523315?w=600" },
-                  { title: "नेपालगञ्जमा स्वास्थ्य शिविर", image: "https://images.unsplash.com/photo-1556155092-490a1ba16284?w=600" },
-                  { title: "धनकुटामा चिया उत्पादन वृद्धि", image: "https://images.unsplash.com/photo-1581093450021-4a7360e9a6b5?w=600" },
-                  { title: "बुटवलमा नयाँ सडक विस्तार", image: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600" },
-                ].map((item, i) => (
-                  <div key={i} className="group cursor-pointer">
-                    <div className="relative rounded-xl overflow-hidden shadow-lg h-48 mb-4">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
+            {trendingNews.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">ट्रेन्डिङ समाचार</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {trendingNews.map((item) => (
+                    <div 
+                      key={item.id} 
+                      onClick={() => navigate(`/local/${item.id}`)}
+                      className="group cursor-pointer"
+                    >
+                      <div className="relative rounded-xl overflow-hidden shadow-lg h-48 mb-4">
+                        <img
+                          src={getImageUrl(item.image)}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-2">
+                        {getTimeAgo(item.publishedDate)}
+                      </p>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
-                      {item.title}
-                    </h3>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column - Sticky */}
           <div className="lg:sticky lg:top-8 lg:self-start space-y-12">
             {/* Most Viewed */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">सर्वाधिक पढिएको</h2>
-              <div className="space-y-4">
-                {[
-                  "काठमाडौंमा वायु प्रदूषण घट्यो",
-                  "नयाँ पुल निर्माणले यात्रु सहज",
-                  "स्थानीय तहमा बजेट वृद्धि",
-                  "नेपालगञ्जमा बजार विस्तार",
-                  "भक्तपुरमा नयाँ मन्दिर निर्माण",
-                  "पोखरामा पर्यटन बोर्ड गठन",
-                ].map((title, i) => (
-                  <div key={i} className="py-3 border-b border-gray-200 last:border-0">
-                    <h4 className="text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
-                      {title}
-                    </h4>
-                  </div>
-                ))}
+            {mostViewedNews.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">सर्वाधिक पढिएको</h2>
+                <div className="space-y-4">
+                  {mostViewedNews.map((item, index) => (
+                    <div 
+                      key={item.id} 
+                      onClick={() => navigate(`/local/${item.id}`)}
+                      className="py-3 border-b border-gray-200 last:border-0 cursor-pointer group"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl font-bold text-gray-300 group-hover:text-blue-600 transition-colors">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors line-clamp-2">
+                            {item.title}
+                          </h4>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {getTimeAgo(item.publishedDate)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Follow Us */}
             <div className="bg-blue-50 rounded-2xl p-8">
@@ -154,6 +259,19 @@ const LocalHome = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* View All Button */}
+        <div className="mt-12 text-center">
+          <button
+            onClick={() => navigate('/local')}
+            className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white font-semibold text-lg rounded-full hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+          >
+            सबै स्थानीय समाचार हेर्नुहोस्
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>

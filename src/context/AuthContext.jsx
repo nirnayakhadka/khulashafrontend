@@ -43,6 +43,19 @@ export const AuthProvider = ({ children }) => {
     return !!token && !!user;
   };
 
+  // ✅ ADD THIS - Get auth headers for API requests
+  const getAuthHeaders = () => {
+    if (!token) return {};
+    return {
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  // ✅ ADD THIS - Get token directly
+  const getToken = () => {
+    return token;
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -50,6 +63,8 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       isAuthenticated,
+      getAuthHeaders, 
+      getToken,       
       loading 
     }}>
       {children}

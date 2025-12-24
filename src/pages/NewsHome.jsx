@@ -1,37 +1,85 @@
-// NewsHome.jsx - समाचार Page
-import React, { useState } from 'react';
+// NewsHome.jsx - समाचार Page with Backend Integration
+import React, { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
+import axiosInstance from '../api/axios';
+import { useNavigate } from 'react-router-dom';
 
 const NewsHome = () => {
-  const carouselItems = [
-    {
-      id: 11,
-      image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600',
-      tag_np: 'विविध',
-      title_np: 'हिमालय पर्वतारोहणको नयाँ रेकर्ड',
-      subtitle_np: 'नेपाली आरोहीले नयाँ इतिहास रचे',
-      journalist: 'दीपक तामाङ',
-      publishedTime: '7 hours ago'
-    },
-    {
-      id: 12,
-      image: 'https://images.unsplash.com/photo-1464207687429-7505649dae38?w=600',
-      tag_np: 'विविध',
-      title_np: 'पोखरामा अन्तर्राष्ट्रिय पर्यटन सम्मेलन',
-      subtitle_np: 'विश्वभरिका पर्यटन विशेषज्ञहरू सहभागी',
-      journalist: 'निशा लामा',
-      publishedTime: '3 days ago'
-    },
-    {
-      id: 13,
-      image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600',
-      tag_np: 'विविध',
-      title_np: 'नेपाली खानाको विश्वव्यापी लोकप्रियता',
-      subtitle_np: 'अन्तर्राष्ट्रिय बजारमा नेपाली खानाको माग बढ्दो',
-      journalist: 'संगीता घिमिरे',
-      publishedTime: '2 days ago'
+  const navigate = useNavigate();
+  const [newsList, setNewsList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch news from backend
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/news');
+      setNewsList(response.data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load news');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const publishedDate = new Date(date);
+    const diffInMs = now - publishedDate;
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    
+    if (diffInDays === 0) {
+      if (diffInHours === 0) return 'भर्खरै';
+      return `${diffInHours} घण्टा अघि`;
+    }
+    if (diffInDays === 1) return '१ दिन अघि';
+    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
+    return `${Math.floor(diffInDays / 30)} महिना अघि`;
+  };
+
+  // Prepare carousel items (first 3 news)
+  const carouselItems = newsList.slice(0, 3);
+  
+  // Additional news grid (remaining news, max 8)
+  const additionalNews = newsList.slice(3, 11);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 mb-16">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">समाचार लोड हुँदैछ...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 mb-16">
+        <div className="text-center py-12">
+          <p className="text-red-600 text-xl mb-4">{error}</p>
+          <button 
+            onClick={fetchNews}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            पुन: प्रयास गर्नुहोस्
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 mb-16">
@@ -42,108 +90,79 @@ const NewsHome = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {carouselItems.map((item) => (
-          <div
-            key={item.id}
-            className="group relative h-72 rounded-xl overflow-hidden shadow-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
-          >
-            <img
-              src={item.image}
-              alt={item.title_np}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
-              <div>
-                <p className="text-white font-bold text-lg">{item.title_np}</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-xs text-gray-300">{item.journalist}</span>
-                  <span className="text-xs text-gray-300">•</span>
-                  <span className="text-xs text-gray-300">{item.publishedTime}</span>
+      {/* Top Featured News Grid */}
+      {carouselItems.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {carouselItems.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => navigate(`/news/${item.id}`)}
+              className="group relative h-72 rounded-xl overflow-hidden shadow-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
+            >
+              <img
+                src={item.image?.startsWith('http') ? item.image : `http://localhost:5000${item.image}`}
+                alt={item.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
+                <div>
+                  <p className="text-white font-bold text-lg">{item.title}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-xs text-gray-300">{item.journalist || 'समाचारदाता'}</span>
+                    <span className="text-xs text-gray-300">•</span>
+                    <span className="text-xs text-gray-300">{getTimeAgo(item.publishedDate)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Additional News Grid */}
-      <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          {
-            image: "https://images.unsplash.com/photo-1614632535591-98e13e1e6e4c?w=800",
-            tag: "खेलकुद",
-            title: "Manchester United demand record transfer fee for De Gea",
-            subtitle: "Real Madrid offer world-record for goalkeeper"
-          },
-          {
-            image: "https://images.unsplash.com/photo-1507679799987-93b5f9b7a7ec?w=800",
-            tag: "अन्तर्राष्ट्रिय",
-            title: "Greek debt talks deepen deadlock",
-            subtitle: "EU leaders meet amid fears of new crisis"
-          },
-          {
-            image: "https://images.unsplash.com/photo-1581092160607-798f1c6f3e1c?w=800",
-            tag: "विज्ञान",
-            title: "In pictures: 3D art in China's new hotspot",
-            subtitle: "De Gea to Real Madrid talks heat up"
-          },
-          {
-            image: "https://images.unsplash.com/photo-1552799446-159ba9523315?w=800",
-            tag: "राजनीति",
-            title: "Putin's Russian city faces NATO threat",
-            subtitle: "Eastern Europe arms buildup intensifies"
-          },
-          {
-            image: "https://images.unsplash.com/photo-1556155092-490a1ba16284?w=800",
-            tag: "प्रविधि",
-            title: "Samsung partners with Microsoft for new mobile",
-            subtitle: "Toshiba software update announced"
-          },
-          {
-            image: "https://images.unsplash.com/photo-1581093450021-4a7360e9a6b5?w=800",
-            tag: "अन्तर्राष्ट्रिय",
-            title: "French Uber protests block Paris and Marseille",
-            subtitle: "Transport chaos as drivers strike"
-          },
-          {
-            image: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800",
-            tag: "मनोरञ्जन",
-            title: "Bobby Jindal presidential bid sparks Twitter mockery",
-            subtitle: "Louisiana Governor's announcement ridiculed"
-          },
-          {
-            image: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800",
-            tag: "विज्ञान",
-            title: "What is the end of the middle class?",
-            subtitle: "Greek debt crisis deepens"
-          },
-        ].map((item, i) => (
-          <div
-            key={i}
-            className="group relative rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer bg-white border border-gray-200"
-          >
-            <div className="relative h-64 md:h-80 overflow-hidden">
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-              <span className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold uppercase">
-                {item.tag}
-              </span>
+      {additionalNews.length > 0 && (
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {additionalNews.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => navigate(`/news/${item.id}`)}
+              className="group relative rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer bg-white border border-gray-200"
+            >
+              <div className="relative h-64 md:h-80 overflow-hidden">
+                <img
+                  src={item.image?.startsWith('http') ? item.image : `http://localhost:5000${item.image}`}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                {item.category && (
+                  <span className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold uppercase">
+                    {item.category}
+                  </span>
+                )}
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                <h3 className="text-xl md:text-2xl font-bold leading-tight mb-2 group-hover:text-blue-300 transition-colors">
+                  {item.title}
+                </h3>
+                <p className="text-sm md:text-base text-gray-200 line-clamp-2">
+                  {item.subtitle || item.excerpt || item.paragraph?.substring(0, 100) + '...'}
+                </p>
+              </div>
             </div>
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-              <h3 className="text-xl md:text-2xl font-bold leading-tight mb-2 group-hover:text-blue-300 transition-colors">
-                {item.title}
-              </h3>
-              <p className="text-sm md:text-base text-gray-200 line-clamp-2">
-                {item.subtitle}
-              </p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      )}
+
+      {/* View All Link */}
+      <div className="mt-8 text-center">
+        <button
+          onClick={() => navigate('/news')}
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-lg transition-colors"
+        >
+          सबै समाचार हेर्नुहोस्
+          <ChevronRight size={20} />
+        </button>
       </div>
     </div>
   );
