@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, User } from 'lucide-react';
 import axiosInstance from '../api/axios';
-
+import khulashaLogo from '../assets/image/khulashalogo.png';
 const More = () => {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -14,17 +14,17 @@ const More = () => {
     fetchArticles();
   }, []);
 
-  const fetchArticles = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get('/more');
-      setArticles(response.data);
-    } catch (error) {
-      console.error('Error fetching articles:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchArticles = async () => {
+  try {
+    setLoading(true);
+    const response = await axiosInstance.get('/news/category/more');
+    setArticles(response.data);
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const carouselCards = articles.slice(0, 5).map((article) => ({
     id: article.id,
@@ -88,14 +88,14 @@ const More = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="max-w-[1600px] mx-auto px-4 py-16 sm:px-6 lg:px-12">
+      <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-12">
         <h2 className="text-4xl font-bold text-slate-800 mb-4 text-center">ताजा समाचार</h2>
         <p className="text-center text-slate-600 mb-12 max-w-2xl mx-auto">
           देश विदेशका भरपर्दो र तथ्यपरक समाचार
         </p>
         
         {/* 3D Carousel Section */}
-        {carouselCards.length > 0 && (
+{carouselCards.length > 0 && (
           <div className="relative h-[500px] mb-16">
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="relative w-full h-full flex items-center justify-center" style={{ perspective: '1200px' }}>
@@ -107,7 +107,7 @@ const More = () => {
                   return (
                     <div
                       key={card.id}
-                      className="absolute transition-all duration-500 ease-out cursor-pointer"
+                      className="absolute cursor-pointer"
                       style={{
                         transform: `
                           translateX(${offset * 300}px)
@@ -118,11 +118,16 @@ const More = () => {
                         zIndex: isCenter ? 50 : 50 - absOffset * 10,
                         opacity: absOffset > 1 ? 0.2 : 1,
                         width: '350px',
-                        height: '450px'
+                        height: '450px',
+                        transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                        willChange: 'transform, opacity'
                       }}
                       onClick={() => isCenter && handleCardClick(card.id)}
                     >
-                      <div className={`relative h-full rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${isCenter ? 'ring-4 ring-blue-500 shadow-blue-500/50' : ''}`}>
+                      <div 
+                        className={`relative h-full rounded-2xl overflow-hidden shadow-2xl ${isCenter ? 'ring-4 ring-blue-500 shadow-blue-500/50' : ''}`}
+                        style={{ transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                      >
                         <img 
                           src={card.image} 
                           alt={card.title}
@@ -130,9 +135,6 @@ const More = () => {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
                         <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                          <span className="inline-block px-3 py-1 bg-blue-500 rounded-full text-xs font-semibold mb-3">
-                            {card.category}
-                          </span>
                           <h3 className="text-2xl font-bold mb-2 line-clamp-2">{card.title}</h3>
                           <div className="flex items-center gap-4 text-sm text-white/80">
                             {card.journalist && (
@@ -179,7 +181,7 @@ const More = () => {
                     if (!isAnimating) {
                       setIsAnimating(true);
                       setCurrentSlide(idx);
-                      setTimeout(() => setIsAnimating(false), 500);
+                      setTimeout(() => setIsAnimating(false), 600);
                     }
                   }}
                   className={`h-2 rounded-full transition-all duration-300 ${
@@ -256,12 +258,8 @@ const ArticleCard = ({ article, onClick }) => {
             transform: isHovered ? 'scale(1.1)' : 'scale(1)'
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-        {article.subtitle && (
-          <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500 text-white rounded-full text-xs font-semibold">
-            {article.subtitle.substring(0, 20)}...
-          </span>
-        )}
+      
+
       </div>
 
       {/* Content */}
@@ -278,20 +276,20 @@ const ArticleCard = ({ article, onClick }) => {
 
         {/* Meta Info */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-          <div className="flex items-center gap-2">
-            {article.journalistImage ? (
-              <img
-                src={`http://localhost:5000${article.journalistImage}`}
-                alt={article.journalistName}
-                className="w-8 h-8 rounded-full object-cover border-2 border-blue-500"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                <User size={14} className="text-white" />
-              </div>
-            )}
-            <span className="text-sm font-medium text-slate-700">{article.journalistName || 'Unknown'}</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <img
+            src={article.journalistImage 
+              ? `http://localhost:5000${article.journalistImage}`
+              : khulashaLogo
+            }
+            alt={article.journalistName || "Khulasha Nepal"}
+            className={article.journalistImage 
+              ? "w-8 h-8 rounded-full object-cover border-2 border-blue-500" 
+              : "w-8 h-8 object-contain"
+            }
+          />
+          <span className="text-sm font-medium text-slate-700">{article.journalistName || 'Unknown'}</span>
+        </div>
           <div className="flex items-center gap-1 text-slate-500 text-xs">
             <Calendar size={12} />
             <span>{formatDate(article.publishedDate)}</span>

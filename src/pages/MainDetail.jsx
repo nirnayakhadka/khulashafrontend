@@ -1,72 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, User, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
+import { Calendar, Clock, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
+import axiosInstance from '../api/axios';
 import khulashaLogo from '../assets/image/khulashalogo.png';
 
-const API_BASE_URL = 'http://localhost:5000/api';
-function LocalDetail() {
+const MainDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [article, setArticle] = useState(null);
+  const [news, setNews] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [relatedArticles, setRelatedArticles] = useState([]);
+  const [relatedNews, setRelatedNews] = useState([]);
   const [mixedNews, setMixedNews] = useState([]);
 
   useEffect(() => {
-    fetchArticleDetail();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    fetchNewsDetail();
+    window.scrollTo(0, 0);
   }, [id]);
 
-const fetchArticleDetail = async () => {
-  try {
-    setLoading(true);
-    
-    // Fetch main article
-    const response = await fetch(`${API_BASE_URL}/news/${id}`);
-    if (!response.ok) throw new Error('Article not found');
-    const data = await response.json();
-    setArticle(data);
-
-    // Fetch related and mixed news in parallel (only 2 API calls!)
-    const [relatedRes, mixedRes] = await Promise.all([
-      fetch(`${API_BASE_URL}/news/category/local?limit=8`),
-      fetch(`${API_BASE_URL}/news/mixed-feed/${id}?limit=18`)
-    ]);
-
-    if (relatedRes.ok) {
-      const allArticles = await relatedRes.json();
-      const related = allArticles
-        .filter(a => a.id !== parseInt(id))
+  const fetchNewsDetail = async () => {
+    try {
+      setLoading(true);
+      // Fetch main news detail
+      const response = await axiosInstance.get(`/main/${id}`);
+      setNews(response.data);
+      
+      // Fetch all main news for related articles
+      const allMainResponse = await axiosInstance.get('/main');
+      const related = allMainResponse.data
+        .filter(item => item.id !== parseInt(id))
         .slice(0, 8);
-      setRelatedArticles(related);
+      setRelatedNews(related);
+
+      // Fetch all category news
+      const [newsRes, societyRes, localRes, sportsRes, moreRes] = await Promise.all([
+        axiosInstance.get('/news'),
+        axiosInstance.get('/society'),
+        axiosInstance.get('/local'),
+        axiosInstance.get('/sports'),
+        axiosInstance.get('/more')
+      ]);
+
+      // Tag each news with its category and combine all
+      const taggedNews = [
+        ...newsRes.data.map(item => ({ ...item, category: 'news', categoryNepali: 'समाचार' })),
+        ...societyRes.data.map(item => ({ ...item, category: 'society', categoryNepali: 'समाज' })),
+        ...localRes.data.map(item => ({ ...item, category: 'local', categoryNepali: 'स्थानीय' })),
+        ...sportsRes.data.map(item => ({ ...item, category: 'sports', categoryNepali: 'खेलकुद' })),
+        ...moreRes.data.map(item => ({ ...item, category: 'more', categoryNepali: 'थप' }))
+      ];
+
+      // Shuffle and get random 18 articles from all categories
+      const shuffled = shuffleArray(taggedNews).slice(0, 18);
+      setMixedNews(shuffled);
+      
+      setError(null);
+    } catch (err) {
+      setError('मुख्य समाचार विवरण लोड गर्न असफल भयो');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (mixedRes.ok) {
-      const mixed = await mixedRes.json();
-      setMixedNews(mixed);
+  // Shuffle array helper function
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-
-    setError(null);
-  } catch (err) {
-    setError('Failed to load article');
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+    return shuffled;
+  };
 
   const getTimeAgo = (date) => {
     const now = new Date();
-    const published = new Date(date);
-    const diffInMs = now - published;
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const publishedDate = new Date(date);
+    const diffInMs = now - publishedDate;
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-    if (diffInHours < 1) return 'भर्खरै';
-    if (diffInHours < 24) return `${diffInHours} घण्टा अघि`;
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    
+    if (diffInDays === 0) {
+      if (diffInHours === 0) return 'भर्खरै';
+      return `${diffInHours} घण्टा अघि`;
+    }
     if (diffInDays === 1) return '१ दिन अघि';
     if (diffInDays < 7) return `${diffInDays} दिन अघि`;
     if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
@@ -75,14 +92,14 @@ const fetchArticleDetail = async () => {
 
   const handleShare = (platform) => {
     const url = window.location.href;
-    const title = article?.title || 'Local News';
+    const title = news?.title || '';
     
     const shareUrls = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`
     };
-
+    
     if (shareUrls[platform]) {
       window.open(shareUrls[platform], '_blank', 'width=600,height=400');
     }
@@ -99,9 +116,9 @@ const fetchArticleDetail = async () => {
 
   const getCategoryColor = (category) => {
     const colors = {
-      main: 'bg-indigo-600',
       news: 'bg-blue-600',
       society: 'bg-green-600',
+      local: 'bg-purple-600',
       sports: 'bg-red-600',
       more: 'bg-orange-600'
     };
@@ -113,23 +130,17 @@ const fetchArticleDetail = async () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading article...</p>
+          <p className="text-gray-600">समाचार विवरण लोड हुँदैछ...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !article) {
+  if (error || !news) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-lg mb-4">{error || 'Article not found'}</p>
-          <button
-            onClick={() => navigate('/local')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Back to News
-          </button>
+          <p className="text-red-600 text-xl mb-4">{error || 'समाचार फेला परेन'}</p>
         </div>
       </div>
     );
@@ -137,17 +148,16 @@ const fetchArticleDetail = async () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Article Content - Main Column */}
+          {/* Main Content */}
           <div className="lg:col-span-2">
             <article className="bg-white rounded-2xl shadow-lg overflow-hidden">
               {/* Featured Image */}
-              {article.image && (
+              {news.image && (
                 <img
-                  src={getImageUrl(article.image)}
-                  alt={article.title}
+                  src={getImageUrl(news.image)}
+                  alt={news.title}
                   className="w-full h-96 object-cover"
                 />
               )}
@@ -155,13 +165,13 @@ const fetchArticleDetail = async () => {
               <div className="p-8">
                 {/* Title */}
                 <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
-                  {article.title}
+                  {news.title}
                 </h1>
 
                 {/* Subtitle */}
-                {article.subtitle && (
+                {news.subtitle && (
                   <p className="text-xl text-gray-600 mb-6 leading-relaxed">
-                    {article.subtitle}
+                    {news.subtitle}
                   </p>
                 )}
 
@@ -170,18 +180,18 @@ const fetchArticleDetail = async () => {
                   {/* Author Info */}
                   <div className="flex items-center gap-3">
                     <img
-                      src={article.journalistImage 
-                        ? getImageUrl(article.journalistImage)
+                      src={news.journalistImage 
+                        ? getImageUrl(news.journalistImage)
                         : khulashaLogo
                       }
-                      alt={article.journalistName || "Khulasha Nepal"}
-                      className={article.journalistImage 
+                      alt={news.journalistName || "Khulasha Nepal"}
+                      className={news.journalistImage 
                         ? "w-12 h-12 rounded-full object-cover border-2 border-gray-200" 
                         : "w-12 h-12 object-contain"
                       }
                     />
                     <div>
-                      <p className="font-semibold text-gray-900">{article.journalistName || 'अज्ञात लेखक'}</p>
+                      <p className="font-semibold text-gray-900">{news.journalistName || 'अज्ञात लेखक'}</p>
                       <p className="text-sm text-gray-500">पत्रकार</p>
                     </div>
                   </div>
@@ -190,7 +200,7 @@ const fetchArticleDetail = async () => {
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar size={18} />
                     <span>
-                      {new Date(article.publishedDate).toLocaleDateString('ne-NP', {
+                      {new Date(news.publishedDate).toLocaleDateString('ne-NP', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
@@ -201,7 +211,7 @@ const fetchArticleDetail = async () => {
                   {/* Time Ago */}
                   <div className="flex items-center gap-2 text-gray-600">
                     <Clock size={18} />
-                    <span>{getTimeAgo(article.publishedDate)}</span>
+                    <span>{getTimeAgo(news.publishedDate)}</span>
                   </div>
                 </div>
 
@@ -211,31 +221,31 @@ const fetchArticleDetail = async () => {
                   <button
                     onClick={() => handleShare('facebook')}
                     className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    title="Share on Facebook"
+                    title="फेसबुकमा साझेदारी गर्नुहोस्"
                   >
                     <Facebook size={20} />
                   </button>
                   <button
                     onClick={() => handleShare('twitter')}
                     className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition"
-                    title="Share on Twitter"
+                    title="ट्विटरमा साझेदारी गर्नुहोस्"
                   >
                     <Twitter size={20} />
                   </button>
                   <button
                     onClick={() => handleShare('linkedin')}
                     className="p-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition"
-                    title="Share on LinkedIn"
+                    title="लिंकडइनमा साझेदारी गर्नुहोस्"
                   >
                     <Linkedin size={20} />
                   </button>
                 </div>
 
                 {/* Content */}
-                {article.paragraph && (
+                {news.paragraph && (
                   <div 
                     className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: article.paragraph }}
+                    dangerouslySetInnerHTML={{ __html: news.paragraph }}
                   />
                 )}
               </div>
@@ -245,15 +255,15 @@ const fetchArticleDetail = async () => {
           {/* Sidebar */}
           <aside className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
-              {/* Related Articles */}
-              {relatedArticles.length > 0 && (
+              {/* Related News */}
+              {relatedNews.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <h3 className="text-2xl font-bold mb-6 text-gray-900">सम्बन्धित समाचार</h3>
                   <div className="space-y-6">
-                    {relatedArticles.map((item) => (
+                    {relatedNews.map((item) => (
                       <div
                         key={item.id}
-                        onClick={() => navigate(`/local/${item.id}`)}
+                        onClick={() => navigate(`/main/${item.id}`)}
                         className="flex gap-4 cursor-pointer group"
                       >
                         <img
@@ -340,6 +350,6 @@ const fetchArticleDetail = async () => {
       </div>
     </div>
   );
-}
+};
 
-export default LocalDetail;
+export default MainDetail;

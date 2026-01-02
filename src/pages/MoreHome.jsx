@@ -1,35 +1,14 @@
-// MoreHome.jsx - Backend Integration
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Calendar, Clock, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../api/axios';
 
-const MoreHome = () => {
+const MoreHome = ({ news = [] }) => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('list');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const postsPerPage = 12;
-
-  useEffect(() => {
-    fetchArticles();
-  }, []);
-
-  const fetchArticles = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get('/more');
-      setArticles(response.data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load articles');
-      console.error('Error fetching articles:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [displayCount, setDisplayCount] = useState(12);
+  
+  const articles = news;
+  const hasMore = displayCount < articles.length;
 
   const getImageUrl = (image) => {
     if (!image) return 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg';
@@ -65,76 +44,19 @@ const MoreHome = () => {
     return temp.textContent || temp.innerText || '';
   };
 
-  // Pagination logic
-  const totalPages = Math.ceil(articles.length / postsPerPage);
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = articles.slice(indexOfFirstPost, indexOfLastPost);
+  // Get displayed articles based on displayCount
+  const displayedArticles = articles.slice(0, displayCount);
 
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  // Trending and popular posts
+  // Trending and popular posts (from remaining articles not in main display)
   const trendingPosts = articles.slice(0, 3);
   const popularPosts = articles.slice(3, 6);
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="mb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">समाचार लोड हुँदैछ...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="mb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="text-center py-12">
-            <p className="text-red-600 text-xl mb-4">{error}</p>
-            <button 
-              onClick={fetchArticles}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              पुन: प्रयास गर्नुहोस्
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Empty state
   if (articles.length === 0) {
     return (
       <div className="mb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="text-center py-12">
-            <p className="text-gray-600 text-xl">समाचार उपलब्ध छैन</p>
-          </div>
+        <div className="max-w-7xl mx-auto text-center py-12 text-gray-500">
+          अन्य समाचार खण्डमा कुनै सामग्री छैन
         </div>
       </div>
     );
@@ -142,63 +64,95 @@ const MoreHome = () => {
 
   return (
     <div className="mb-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-[1600px] mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Main Content Area */}
-        <div className="flex flex-col lg:flex-row gap-10">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
           {/* Left: Latest News */}
-          <main className="lg:w-3/4">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-3xl font-bold text-gray-900">नवीनतम समाचार</h3>
+          <main className="w-full lg:w-3/4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">नवीनतम समाचार</h3>
               <div className="flex bg-gray-200 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-3 rounded-lg transition ${viewMode === 'list' ? 'bg-white shadow-md' : 'hover:bg-gray-300'}`}
+                  className={`p-2 sm:p-3 rounded-lg transition ${viewMode === 'list' ? 'bg-white shadow-md' : 'hover:bg-blue-900'}`}
+                  aria-label="List view"
                 >
-                  <List size={24} />
+                  <List size={20} className="sm:w-6 sm:h-6" />
                 </button>
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-3 rounded-lg transition ${viewMode === 'grid' ? 'bg-white shadow-md' : 'hover:bg-gray-300'}`}
+                  className={`p-2 sm:p-3 rounded-lg transition ${viewMode === 'grid' ? 'bg-white shadow-md' : 'hover:bg-blue-900'}`}
+                  aria-label="Grid view"
                 >
-                  <Grid size={24} />
+                  <Grid size={20} className="sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
 
-            {/* Posts Grid/List */}
-            <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : 'space-y-10'}>
-              {currentPosts.map((post) => (
+            {/* Posts Grid/List - Fully Responsive */}
+            <div className={
+              viewMode === 'grid' 
+                ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8' 
+                : 'space-y-6 sm:space-y-10'
+            }>
+              {displayedArticles.map((post) => (
                 <article
                   key={post.id}
                   onClick={() => navigate(`/more/${post.id}`)}
-                  className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer ${
-                    viewMode === 'list' ? 'flex gap-8' : ''
+                  className={`bg-white rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group ${
+                    viewMode === 'list' 
+                      ? 'flex flex-row gap-3 sm:gap-6 lg:gap-8' 
+                      : 'flex flex-col'
                   }`}
                 >
-                  <img
-                    src={getImageUrl(post.image)}
-                    alt={post.title}
-                    className={`${
-                      viewMode === 'list'
-                        ? 'w-80 h-56 object-cover'
-                        : 'w-full h-64 object-cover'
-                    }`}
-                  />
-                  <div className="p-8 flex-1">
-                    <h4 className="text-2xl font-bold mb-4 hover:text-red-700 transition">
-                      {post.title}
-                    </h4>
-                    <p className="text-gray-600 mb-6 text-lg leading-relaxed line-clamp-3">
-                      {post.subtitle || stripHtml(post.paragraph)?.substring(0, 150) + '...' || ''}
-                    </p>
-                    <div className="flex items-center text-sm text-gray-500 space-x-6">
-                      <span className="flex items-center gap-2">
-                        <Calendar size={18} />
-                        {formatDate(post.publishedDate)}
+                  {/* Image */}
+                  <div className={`relative overflow-hidden flex-shrink-0 ${
+                    viewMode === 'list'
+                      ? 'w-32 h-32 xs:w-40 xs:h-40 sm:w-64 sm:h-56 md:w-80 md:h-64 lg:w-96'
+                      : 'w-full h-48 sm:h-56 md:h-64'
+                  }`}>
+                    <img
+                      src={getImageUrl(post.image)}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+
+                  {/* Content */}
+                  <div className={`flex-1 flex flex-col justify-between min-w-0 ${
+                    viewMode === 'list' 
+                      ? 'p-3 sm:p-6 lg:p-8' 
+                      : 'p-4 sm:p-6'
+                  }`}>
+                    <div>
+                      <h4 className={`font-bold mb-2 sm:mb-3 lg:mb-4 hover:text-blue-900 transition ${
+                        viewMode === 'list' 
+                          ? 'text-base sm:text-2xl lg:text-3xl line-clamp-2' 
+                          : 'text-lg sm:text-xl line-clamp-2'
+                      }`}>
+                        {post.title}
+                      </h4>
+                      <p className={`text-gray-600 leading-relaxed ${
+                        viewMode === 'list' 
+                          ? 'text-xs sm:text-base lg:text-lg mb-2 sm:mb-4 lg:mb-6 line-clamp-2 sm:line-clamp-3' 
+                          : 'text-sm sm:text-base mb-3 sm:mb-4 line-clamp-2 sm:line-clamp-3'
+                      }`}>
+                        {post.subtitle || stripHtml(post.paragraph)?.substring(0, viewMode === 'list' ? 200 : 120) + '...' || ''}
+                      </p>
+                    </div>
+                    
+                    <div className={`flex flex-row sm:flex-row sm:items-center text-gray-500 gap-1 sm:gap-2 lg:gap-6 mt-auto ${
+                      viewMode === 'list' 
+                        ? 'text-xs sm:text-sm' 
+                        : 'text-xs sm:text-sm'
+                    }`}>
+                      <span className="flex items-center gap-1 sm:gap-2">
+                        <Calendar size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span className="truncate text-xs sm:text-sm">{formatDate(post.publishedDate)}</span>
                       </span>
-                      <span className="flex items-center gap-2">
-                        <Clock size={18} />
-                        {getTimeAgo(post.publishedDate)}
+                      <span className="flex items-center gap-1 sm:gap-2">
+                        <Clock size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm">{getTimeAgo(post.publishedDate)}</span>
                       </span>
                     </div>
                   </div>
@@ -206,68 +160,41 @@ const MoreHome = () => {
               ))}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-12 flex justify-center items-center gap-4">
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="mt-8 sm:mt-12 text-center">
                 <button
-                  onClick={handlePrev}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
+                  onClick={() => setDisplayCount(prev => prev + 12)}
+                  className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
                 >
-                  <ChevronLeft size={20} />
-                  अघिल्लो
-                </button>
-
-                <div className="flex gap-2 flex-wrap justify-center">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`px-4 py-2 rounded-lg transition ${
-                        currentPage === page
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 hover:bg-gray-300'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={handleNext}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
-                >
-                  अर्को
-                  <ChevronRight size={20} />
+                  थप समाचार हेर्नुहोस् ({articles.length - displayCount} बाँकी)
                 </button>
               </div>
             )}
           </main>
 
-          {/* Right Sidebar */}
-          <aside className="lg:w-1/4">
-            <div className="lg:sticky lg:top-8 space-y-8">
+          {/* Right Sidebar - Responsive */}
+          <aside className="w-full lg:w-1/4">
+            <div className="lg:sticky lg:top-8 space-y-6 sm:space-y-8">
               {/* Trending Section */}
               {trendingPosts.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-lg p-8">
-                  <h3 className="text-2xl font-bold mb-6 text-red-700">ट्रेन्डिङ</h3>
-                  <ol className="space-y-6">
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">
+                  <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-red-700">ट्रेन्डिङ</h3>
+                  <ol className="space-y-4 sm:space-y-6">
                     {trendingPosts.map((post, index) => (
                       <li 
                         key={post.id} 
                         onClick={() => navigate(`/more/${post.id}`)}
-                        className="flex gap-4 cursor-pointer group"
+                        className="flex gap-3 sm:gap-4 cursor-pointer group"
                       >
-                        <span className="text-3xl font-extrabold text-gray-200 group-hover:text-red-700 transition-colors">
+                        <span className="text-2xl sm:text-3xl font-extrabold text-gray-200 group-hover:text-blue-900 transition-colors flex-shrink-0">
                           {index + 1}
                         </span>
-                        <div className="flex-1">
-                          <p className="font-semibold text-lg hover:text-red-700 transition line-clamp-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-base sm:text-lg hover:text-blue-900 transition line-clamp-2">
                             {post.title}
                           </p>
-                          <span className="text-sm text-gray-500 mt-1 block">
+                          <span className="text-xs sm:text-sm text-gray-500 mt-1 block">
                             {getTimeAgo(post.publishedDate)}
                           </span>
                         </div>
@@ -279,21 +206,21 @@ const MoreHome = () => {
 
               {/* Popular Section */}
               {popularPosts.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-lg p-8">
-                  <h3 className="text-2xl font-bold mb-6 text-red-700">लोकप्रिय</h3>
-                  <div className="space-y-6">
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">
+                  <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-red-700">लोकप्रिय</h3>
+                  <div className="space-y-4 sm:space-y-6">
                     {popularPosts.map((post) => (
                       <div 
                         key={post.id} 
                         onClick={() => navigate(`/more/${post.id}`)}
-                        className="flex gap-4 cursor-pointer group"
+                        className="flex gap-3 sm:gap-4 cursor-pointer group"
                       >
                         <img
                           src={getImageUrl(post.image)}
                           alt={post.title}
-                          className="w-24 h-20 object-cover rounded-xl"
+                          className="w-20 h-16 sm:w-24 sm:h-20 object-cover rounded-lg sm:rounded-xl flex-shrink-0"
                         />
-                        <p className="font-medium hover:text-red-700 transition line-clamp-2">
+                        <p className="font-medium text-sm sm:text-base hover:text-blue-900 transition line-clamp-2 flex-1 min-w-0">
                           {post.title}
                         </p>
                       </div>
@@ -301,24 +228,18 @@ const MoreHome = () => {
                   </div>
                 </div>
               )}
-
-              {/* Advertisement Section */}
-              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center">
-                <p className="text-gray-600 font-medium text-lg">विज्ञापन क्षेत्र</p>
-                <p className="text-sm text-gray-500 mt-2">३०० × ६००</p>
-              </div>
             </div>
           </aside>
         </div>
 
         {/* View All Button */}
-        <div className="mt-12 text-center">
+        <div className="mt-8 sm:mt-12 text-center">
           <button
             onClick={() => navigate('/more')}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white font-semibold text-lg rounded-full hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+            className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 text-white font-semibold text-base sm:text-lg rounded-full hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl w-full sm:w-auto justify-center"
           >
             सबै समाचार हेर्नुहोस्
-            <ChevronRight size={24} />
+            <ChevronRight size={20} className="sm:w-6 sm:h-6" />
           </button>
         </div>
       </div>

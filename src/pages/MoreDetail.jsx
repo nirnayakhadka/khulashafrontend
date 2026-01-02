@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, User, ArrowLeft, Clock, Share2, BookmarkPlus, Facebook, Twitter, Linkedin } from 'lucide-react';
 import axiosInstance from '../api/axios';
+import khulashaLogo from '../assets/image/khulashalogo.png';
 
 const MoreDetail = () => {
   const { id } = useParams();
@@ -9,29 +10,66 @@ const MoreDetail = () => {
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [relatedArticles, setRelatedArticles] = useState([]);
+  const [mixedNews, setMixedNews] = useState([]);
 
   useEffect(() => {
     fetchArticle();
+    window.scrollTo(0, 0);
   }, [id]);
 
-  const fetchArticle = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(`/more/${id}`);
-      setArticle(response.data);
-      setError(null);
-    } catch (error) {
-      console.error('Error fetching article:', error);
-      setError('समाचार लोड गर्न सकिएन। कृपया पुन: प्रयास गर्नुहोस्।');
-    } finally {
-      setLoading(false);
+const fetchArticle = async () => {
+  try {
+    setLoading(true);
+    
+    // Fetch article detail, related articles, and mixed news in parallel
+    const [response, allArticlesResponse, mixedRes] = await Promise.all([
+      axiosInstance.get(`/news/${id}`),
+      axiosInstance.get('/news/category/more'),
+      axiosInstance.get(`/news/mixed-feed/${id}?limit=18`)
+    ]);
+    
+    // Set article
+    setArticle(response.data);
+
+    // Related articles (same category only)
+    const related = allArticlesResponse.data
+      .filter(item => item.id !== parseInt(id))
+      .slice(0, 8);
+    setRelatedArticles(related);
+
+    // Mixed news from all categories (handled by backend)
+    if (mixedRes.data) {
+      setMixedNews(mixedRes.data);
     }
-  };
+
+    setError(null);
+  } catch (error) {
+    console.error('Error fetching article:', error);
+    setError('समाचार लोड गर्न सकिएन। कृपया पुन: प्रयास गर्नुहोस्।');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('ne-NP', options);
+  };
+
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const published = new Date(date);
+    const diffInMs = now - published;
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInHours < 1) return 'भर्खरै';
+    if (diffInHours < 24) return `${diffInHours} घण्टा अघि`;
+    if (diffInDays === 1) return '१ दिन अघि';
+    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
+    return `${Math.floor(diffInDays / 30)} महिना अघि`;
   };
 
   const handleShare = (platform) => {
@@ -47,27 +85,34 @@ const MoreDetail = () => {
     if (shareUrls[platform]) {
       window.open(shareUrls[platform], '_blank', 'width=600,height=400');
     }
-    setShowShareMenu(false);
   };
 
-  const handleBookmark = () => {
-    // Add to localStorage or backend
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
-    if (!bookmarks.includes(id)) {
-      bookmarks.push(id);
-      localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
-      alert('लेख बुकमार्क गरियो!');
-    } else {
-      alert('यो लेख पहिले नै बुकमार्क गरिएको छ।');
-    }
+  const navigateToArticle = (item) => {
+    navigate(`/${item.category}/${item.id}`);
+  };
+
+  const getImageUrl = (image) => {
+    if (!image) return 'https://images.unsplash.com/photo-1504711434969-e338f2762819?w=600';
+    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+  };
+
+  const getCategoryColor = (category) => {
+    const colors = {
+      main: 'bg-indigo-600',
+      news: 'bg-blue-600',
+      society: 'bg-green-600',
+      local: 'bg-purple-600',
+      sports: 'bg-red-600'
+    };
+    return colors[category] || 'bg-gray-600';
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 text-lg">लोड गर्दै...</p>
+          <p className="text-gray-600 text-lg">लोड गर्दै...</p>
         </div>
       </div>
     );
@@ -75,11 +120,11 @@ const MoreDetail = () => {
 
   if (error || !article) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-4">समाचार भेटिएन</h2>
-          <p className="text-slate-600 mb-6">{error || 'यो समाचार अवस्थित छैन वा हटाइएको छ।'}</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">समाचार भेटिएन</h2>
+          <p className="text-gray-600 mb-6">{error || 'यो समाचार अवस्थित छैन वा हटाइएको छ।'}</p>
           <button
             onClick={() => navigate('/more')}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 mx-auto"
@@ -93,194 +138,201 @@ const MoreDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Header Section */}
-      <div className="bg-white shadow-md border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <button
-            onClick={() => navigate('/more')}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition mb-4"
-          >
-            <ArrowLeft size={20} />
-            <span>सबै समाचार</span>
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <article className="bg-white rounded-2xl shadow-lg overflow-hidden">
+              {/* Featured Image */}
+              {article.image && (
+                <img
+                  src={getImageUrl(article.image)}
+                  alt={article.title}
+                  className="w-full h-96 object-cover"
+                />
+              )}
 
-      {/* Article Content */}
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        {/* Featured Image */}
-        <div className="relative rounded-2xl overflow-hidden shadow-2xl mb-8 h-96">
-          <img
-            src={article.image ? `http://localhost:5000${article.image}` : 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=80'}
-            alt={article.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
-        </div>
+              <div className="p-8">
+                {/* Title */}
+                <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                  {article.title}
+                </h1>
 
-        {/* Article Header */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-            {article.title}
-          </h1>
+                {/* Subtitle */}
+                {article.subtitle && (
+                  <p className="text-xl text-gray-600 mb-6 leading-relaxed">
+                    {article.subtitle}
+                  </p>
+                )}
 
-          {article.subtitle && (
-            <p className="text-xl text-slate-600 mb-6 leading-relaxed">
-              {article.subtitle}
-            </p>
-          )}
+                {/* Meta Information */}
+                <div className="flex flex-wrap items-center gap-6 pb-6 mb-6 border-b border-gray-200">
+                  {/* Author Info */}
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={article.journalistImage 
+                        ? getImageUrl(article.journalistImage)
+                        : khulashaLogo
+                      }
+                      alt={article.journalistName || "Khulasha Nepal"}
+                      className={article.journalistImage 
+                        ? "w-12 h-12 rounded-full object-cover border-2 border-gray-200" 
+                        : "w-12 h-12 object-contain"
+                      }
+                    />
+                    <div>
+                      <p className="font-semibold text-gray-900">{article.journalistName || 'अज्ञात लेखक'}</p>
+                      <p className="text-sm text-gray-500">पत्रकार</p>
+                    </div>
+                  </div>
 
-          {/* Meta Information */}
-          <div className="flex flex-wrap items-center gap-6 pb-6 border-b border-slate-200">
-            <div className="flex items-center gap-2 text-slate-600">
-              <Calendar size={18} />
-              <span className="text-sm">{formatDate(article.publishedDate)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-600">
-              <Clock size={18} />
-              <span className="text-sm">५ मिनेट पढ्न</span>
-            </div>
-          </div>
+                  {/* Date */}
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar size={18} />
+                    <span>{formatDate(article.publishedDate)}</span>
+                  </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-4 pt-6">
-            <div className="relative">
-              <button
-                onClick={() => setShowShareMenu(!showShareMenu)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition font-medium"
-              >
-                <Share2 size={18} />
-                <span>सेयर गर्नुहोस्</span>
-              </button>
+                  {/* Time Ago */}
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock size={18} />
+                    <span>{getTimeAgo(article.publishedDate)}</span>
+                  </div>
+                </div>
 
-              {showShareMenu && (
-                <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl border border-slate-200 p-2 z-10">
+                {/* Share Buttons */}
+                <div className="flex items-center gap-4 mb-8">
+                  <span className="text-gray-600 font-medium">साझेदारी गर्नुहोस्:</span>
                   <button
                     onClick={() => handleShare('facebook')}
-                    className="flex items-center gap-3 w-full px-4 py-2 hover:bg-blue-50 rounded-lg transition text-left"
+                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    title="Facebook"
                   >
-                    <Facebook size={18} className="text-blue-600" />
-                    <span className="text-slate-700">Facebook</span>
+                    <Facebook size={20} />
                   </button>
                   <button
                     onClick={() => handleShare('twitter')}
-                    className="flex items-center gap-3 w-full px-4 py-2 hover:bg-sky-50 rounded-lg transition text-left"
+                    className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition"
+                    title="Twitter"
                   >
-                    <Twitter size={18} className="text-sky-500" />
-                    <span className="text-slate-700">Twitter</span>
+                    <Twitter size={20} />
                   </button>
                   <button
                     onClick={() => handleShare('linkedin')}
-                    className="flex items-center gap-3 w-full px-4 py-2 hover:bg-indigo-50 rounded-lg transition text-left"
+                    className="p-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition"
+                    title="LinkedIn"
                   >
-                    <Linkedin size={18} className="text-indigo-600" />
-                    <span className="text-slate-700">LinkedIn</span>
+                    <Linkedin size={20} />
                   </button>
                 </div>
-              )}
-            </div>
 
-            <button
-              onClick={handleBookmark}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-lg transition font-medium"
-            >
-              <BookmarkPlus size={18} />
-              <span>बुकमार्क</span>
-            </button>
+                {/* Content */}
+                {article.paragraph && (
+                  <div 
+                    className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: article.paragraph }}
+                  />
+                )}
+              </div>
+            </article>
           </div>
-        </div>
 
-        {/* Article Body */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <div 
-            className="prose prose-lg max-w-none text-slate-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: article.paragraph }}
-            style={{
-              fontSize: '1.125rem',
-              lineHeight: '1.8'
-            }}
-          />
-        </div>
-
-        {/* Journalist Info */}
-        {article.journalistName && (
-          <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl shadow-lg p-8 border border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-700 mb-4">लेखकको बारेमा</h3>
-            <div className="flex items-center gap-6">
-              {article.journalistImage ? (
-                <img
-                  src={`http://localhost:5000${article.journalistImage}`}
-                  alt={article.journalistName}
-                  className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-                  <User className="w-10 h-10 text-white" />
+          {/* Sidebar */}
+          <aside className="lg:col-span-1">
+            <div className="sticky top-8 space-y-6">
+              {/* Related Articles */}
+              {relatedArticles.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                  <h3 className="text-2xl font-bold mb-6 text-gray-900">सम्बन्धित समाचार</h3>
+                  <div className="space-y-6">
+                    {relatedArticles.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => navigate(`/more/${item.id}`)}
+                        className="flex gap-4 cursor-pointer group"
+                      >
+                        <img
+                          src={getImageUrl(item.image)}
+                          alt={item.title}
+                          className="w-24 h-20 object-cover rounded-lg group-hover:opacity-80 transition"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition line-clamp-2">
+                            {item.title}
+                          </p>
+                          <span className="text-sm text-gray-500 mt-1 block">
+                            {getTimeAgo(item.publishedDate)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              <div>
-                <h4 className="text-2xl font-bold text-slate-900 mb-1">{article.journalistName}</h4>
-                <p className="text-slate-600">वरिष्ठ पत्रकार</p>
-              </div>
             </div>
+          </aside>
+        </div>
+
+        {/* Mixed News from All Categories - Single Section */}
+        {mixedNews.length > 0 && (
+          <div className="mt-16">
+            <section className="bg-white rounded-2xl shadow-lg p-8">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">थप समाचारहरू</h2>
+                <p className="text-gray-600">सबै श्रेणीबाट छनोट गरिएका समाचारहरू</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {mixedNews.map((item) => (
+                  <div
+                    key={`${item.category}-${item.id}`}
+                    onClick={() => navigateToArticle(item)}
+                    className="group cursor-pointer bg-gray-50 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
+                  >
+                    <div className="relative overflow-hidden h-48">
+                      <img
+                        src={getImageUrl(item.image)}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      {/* Category Badge */}
+                      <div className={`absolute top-3 left-3 ${getCategoryColor(item.category)} text-white px-3 py-1 rounded-full text-xs font-semibold`}>
+                        {item.categoryNepali}
+                      </div>
+                    </div>
+                    
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition line-clamp-2 mb-2 text-lg">
+                        {item.title}
+                      </h3>
+                      
+                      {item.subtitle && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                          {item.subtitle}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center gap-2">
+                          {item.journalistImage && (
+                            <img 
+                              src={getImageUrl(item.journalistImage)} 
+                              alt={item.journalistName}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                          )}
+                          <span className="truncate">{item.journalistName}</span>
+                        </div>
+                        <span>{getTimeAgo(item.publishedDate)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         )}
-
-        {/* Related Articles Placeholder */}
-        <div className="mt-12">
-          <h3 className="text-2xl font-bold text-slate-800 mb-6">सम्बन्धित समाचार</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition cursor-pointer">
-                <div className="h-40 bg-gradient-to-br from-slate-200 to-slate-300"></div>
-                <div className="p-4">
-                  <h4 className="font-bold text-slate-800 mb-2 line-clamp-2">अन्य समाचार शीर्षक यहाँ</h4>
-                  <p className="text-sm text-slate-600">२ घण्टा अगाडि</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
-
-      {/* Click outside to close share menu */}
-      {showShareMenu && (
-        <div
-          className="fixed inset-0 z-0"
-          onClick={() => setShowShareMenu(false)}
-        ></div>
-      )}
-
-      <style>{`
-        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
-          color: #1e293b;
-          font-weight: 700;
-          margin-top: 1.5em;
-          margin-bottom: 0.75em;
-        }
-        .prose p {
-          margin-bottom: 1.25em;
-        }
-        .prose ul, .prose ol {
-          margin-left: 1.5em;
-          margin-bottom: 1.25em;
-        }
-        .prose li {
-          margin-bottom: 0.5em;
-        }
-        .prose strong {
-          color: #1e293b;
-          font-weight: 600;
-        }
-        .prose a {
-          color: #2563eb;
-          text-decoration: underline;
-        }
-        .prose a:hover {
-          color: #1d4ed8;
-        }
-      `}</style>
     </div>
   );
 };

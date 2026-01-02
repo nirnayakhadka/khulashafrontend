@@ -1,37 +1,32 @@
-// SportsHome.jsx - खेलखबर Page with Backend Integration
-import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronRight, Clock } from 'lucide-react';
 
-const SportsHome = () => {
+const SportsHome = ({ news = [] }) => {
   const navigate = useNavigate();
-  const [sportsList, setSportsList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchSports();
-  }, []);
-
-  const fetchSports = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('http://localhost:5000/api/sports');
-      if (!response.ok) throw new Error('Failed to fetch sports articles');
-      const data = await response.json();
-      setSportsList(data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load sports articles');
-      console.error('Error fetching sports:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [displayCount, setDisplayCount] = useState(9); // 1 featured + 4 grid + 4 sidebar
+  
+  const sportsList = news;
+  const hasMore = displayCount < sportsList.length;
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200';
     return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+  };
+
+  const stripHtml = (html) => {
+    if (!html) return '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
+  const getCleanText = (text, maxLength = 150) => {
+    const cleaned = stripHtml(text);
+    if (cleaned.length > maxLength) {
+      return cleaned.substring(0, maxLength) + '...';
+    }
+    return cleaned;
   };
 
   const getTimeAgo = (date) => {
@@ -51,206 +46,163 @@ const SportsHome = () => {
     return `${Math.floor(diffInDays / 30)} महिना अघि`;
   };
 
-  // Featured large card (first article)
-  const featuredArticle = sportsList[0];
+  // Get displayed items based on displayCount
+  const displayedSports = sportsList.slice(0, displayCount);
 
-  // Grid cards (next 6 articles)
-  const gridArticles = sportsList.slice(1, 7);
+  // Data slicing
+  const featuredArticle = displayedSports[0];
+  const gridArticles = displayedSports.slice(1, 5); // 4 articles for grid (2x2)
+  const sidebarArticles = displayedSports.slice(5, 9); // 4 articles for sidebar
 
-  // Trending articles (next 6 articles for sidebar)
-  const trendingArticles = sportsList.slice(7, 13);
+  const handleNavigate = (id) => {
+    if (id === 'all') {
+      navigate('/sports');
+    } else {
+      navigate(`/sports/${id}`);
+    }
+  };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="mb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">खेलकुद समाचार लोड हुँदैछ...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="mb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="text-center py-12">
-            <p className="text-red-600 text-xl mb-4">{error}</p>
-            <button 
-              onClick={fetchSports}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              पुन: प्रयास गर्नुहोस्
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Empty state
   if (sportsList.length === 0) {
     return (
       <div className="mb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="text-center py-12">
-            <p className="text-gray-600 text-xl">खेलकुद समाचार उपलब्ध छैन</p>
-          </div>
+        <div className="max-w-7xl mx-auto text-center py-12 text-gray-500">
+          खेलकुद समाचार खण्डमा कुनै सामग्री छैन
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mb-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-[1600px] mx-auto">
+    <div className="mb-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <div className="max-w-7xl mx-auto py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
-          <h1 className="text-5xl font-bold text-gray-900">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
             खेलखबर
-            <div className="h-1 w-32 bg-green-600 rounded-full mt-4"></div>
+            <div className="h-1 w-32 bg-blue-900 rounded-full mt-4"></div>
           </h1>
           <button 
-            onClick={() => navigate('/sports')}
-            className="text-green-600 font-medium flex items-center gap-2 hover:gap-4 transition-all"
+            onClick={() => handleNavigate('all')}
+            className="text-green-600 font-medium flex items-center gap-2 hover:gap-4 transition-all text-sm md:text-base"
           >
             थप हेर्नुहोस् <ChevronRight size={24} />
           </button>
         </div>
 
-        {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Left + Middle Column: Main Content + 3x2 Grid Cards */}
-          <div className="lg:col-span-2 space-y-12">
+        {/* Main Layout - 2/3 Left + 1/3 Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left + Middle Column (2/3 width) */}
+          <div className="lg:col-span-2 space-y-8">
             {/* Featured Large Card */}
             {featuredArticle && (
               <div 
-                onClick={() => navigate(`/sports/${featuredArticle.id}`)}
-                className="group relative rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 cursor-pointer h-[500px] md:h-[600px]"
+                onClick={() => handleNavigate(featuredArticle.id)}
+                className="group relative rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 cursor-pointer h-[450px] md:h-[550px]"
               >
                 <img
                   src={getImageUrl(featuredArticle.image)}
                   alt={featuredArticle.title}
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                <span className="absolute top-6 left-6 bg-green-600 text-white px-5 py-2 rounded-full text-sm font-bold uppercase">
-                  मुख्य समाचार
-                </span>
-                <div className="absolute bottom-0 left-0 right-0 p-10 text-white">
-                  <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
+                {/* Right-side gradient only */}
+                <div className="absolute inset-y-0 right-0 w-2/5 bg-gradient-to-l from-black/80 via-black/50 to-transparent" />
+                
+                <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10 text-white">
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4 drop-shadow-2xl group-hover:text-blue-400 transition-colors">
                     {featuredArticle.title}
                   </h2>
-                  <p className="text-xl md:text-2xl text-gray-200 line-clamp-2">
-                    {featuredArticle.subtitle || featuredArticle.paragraph?.substring(0, 150) + '...' || ''}
+                  <p className="text-lg md:text-xl text-gray-100 line-clamp-2 mb-4 drop-shadow-lg">
+                    {getCleanText(featuredArticle.subtitle || featuredArticle.paragraph, 150)}
                   </p>
-                  <p className="text-sm mt-4 opacity-80">
-                    {new Date(featuredArticle.publishedDate).toLocaleDateString('ne-NP', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
+                  <div className="flex items-center gap-2 text-sm opacity-90">
+                    <Clock size={16} />
+                    <span>{getTimeAgo(featuredArticle.publishedDate)}</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* 3 Rows × 2 Columns Grid Cards (6 Cards) */}
+            {/* Grid Articles - 2x2 */}
             {gridArticles.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {gridArticles.map((item) => (
                   <div
                     key={item.id}
-                    onClick={() => navigate(`/sports/${item.id}`)}
-                    className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer h-[360px] lg:h-[400px]"
+                    onClick={() => handleNavigate(item.id)}
+                    className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100"
                   >
-                    <img
-                      src={getImageUrl(item.image)}
-                      alt={item.title}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    <span className="absolute top-4 left-4 bg-green-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase">
-                      खेलकुद
-                    </span>
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                      <h3 className="text-xl md:text-2xl font-bold leading-tight mb-2 group-hover:text-green-300 transition-colors">
+                    {/* Image Section */}
+                    <div className="relative h-56 overflow-hidden">
+                      <img
+                        src={getImageUrl(item.image)}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      {item.category && (
+                        <span className="absolute top-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          {item.category}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="p-5">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-700 transition-colors">
                         {item.title}
                       </h3>
-                      <p className="text-sm md:text-base text-gray-200 line-clamp-2">
-                        {item.subtitle || item.paragraph?.substring(0, 100) + '...' || ''}
-                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-3">
+                        <Clock size={14} />
+                        <span>{getTimeAgo(item.publishedDate)}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {/* Right Sticky Sidebar */}
-          <div className="lg:sticky lg:top-8 lg:self-start space-y-10">
-            {/* Trending List */}
-            {trendingArticles.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">ट्रेन्डिङ</h2>
-                <div className="space-y-5">
-                  {trendingArticles.map((article, index) => (
-                    <div 
-                      key={article.id} 
-                      onClick={() => navigate(`/sports/${article.id}`)}
-                      className="py-3 border-b border-gray-200 last:border-0 cursor-pointer group"
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl font-bold text-gray-300 group-hover:text-green-600 transition-colors">
-                          {index + 1}
-                        </span>
-                        <div className="flex-1">
-                          <h4 className="text-lg font-medium text-gray-900 hover:text-green-600 transition-colors line-clamp-2">
-                            {article.title}
-                          </h4>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {getTimeAgo(article.publishedDate)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+       
+          {/* Right Sidebar - Compact List Format */}
+          <div className="space-y-6">
+            {sidebarArticles.length > 0 && sidebarArticles.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => handleNavigate(item.id)}
+                className="group cursor-pointer bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100"
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={getImageUrl(item.image)}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                
+                <div className="p-4">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                    <Clock size={12} />
+                    <span>{getTimeAgo(item.publishedDate)}</span>
+                  </div>
+                  
+                  <h3 className="font-bold text-base text-gray-900 line-clamp-3 group-hover:text-blue-700 transition-colors leading-snug">
+                    {item.title}
+                  </h3>
                 </div>
               </div>
-            )}
-
-            {/* Additional Section */}
-            <div className="bg-green-50 rounded-2xl p-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">अन्य खेल समाचार</h3>
-              <div className="space-y-4">
-                <p className="text-gray-700">नेपालको खेलकुद विकासमा नयाँ योजना</p>
-                <p className="text-gray-700">युवा खेलाडीहरूलाई अन्तर्राष्ट्रिय अवसर</p>
-                <button 
-                  onClick={() => navigate('/sports')}
-                  className="mt-4 w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                >
-                  सबै समाचार हेर्नुहोस्
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* View All Button */}
-        <div className="mt-12 text-center">
-          <button
-            onClick={() => navigate('/sports')}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white font-semibold text-lg rounded-full hover:bg-green-700 transition-all duration-300 shadow-lg hover:shadow-xl"
-          >
-            सबै खेलकुद समाचार हेर्नुहोस्
-            <ChevronRight size={24} />
-          </button>
-        </div>
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="mt-10 text-center">
+            <button
+              onClick={() => setDisplayCount(prev => prev + 8)}
+              className="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+            >
+              थप खेलकुद समाचार हेर्नुहोस् ({sportsList.length - displayCount} बाँकी)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
 import axiosInstance from '../api/axios';
+import khulashaLogo from '../assets/image/khulashalogo.png';
 
 const NewsDetail = () => {
   const { id } = useParams();
@@ -10,33 +11,46 @@ const NewsDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [relatedNews, setRelatedNews] = useState([]);
+  const [mixedNews, setMixedNews] = useState([]);
 
   useEffect(() => {
     fetchNewsDetail();
     window.scrollTo(0, 0);
   }, [id]);
 
-  const fetchNewsDetail = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(`/news/${id}`);
-      setNews(response.data);
-      
-      // Fetch all news for related articles
-      const allNewsResponse = await axiosInstance.get('/news');
-      const related = allNewsResponse.data
-        .filter(item => item.id !== parseInt(id))
-        .slice(0, 4);
-      setRelatedNews(related);
-      
-      setError(null);
-    } catch (err) {
-      setError('Failed to load news details');
-      console.error(err);
-    } finally {
-      setLoading(false);
+const fetchNewsDetail = async () => {
+  try {
+    setLoading(true);
+    
+    // Fetch news detail
+    const response = await axiosInstance.get(`/news/${id}`);
+    setNews(response.data);
+    
+    // Fetch related articles and mixed news in parallel
+    const [allNewsResponse, mixedRes] = await Promise.all([
+      axiosInstance.get('/news/category/news'),
+      axiosInstance.get(`/news/mixed-feed/${id}?limit=18`)
+    ]);
+    
+    // Related articles (same category only)
+    const related = allNewsResponse.data
+      .filter(item => item.id !== parseInt(id))
+      .slice(0, 8);
+    setRelatedArticles(related);
+    
+    // Mixed news from all categories (handled by backend)
+    if (mixedRes.data) {
+      setMixedNews(mixedRes.data);
     }
-  };
+    
+    setError(null);
+  } catch (err) {
+    setError('Failed to load news details');
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getTimeAgo = (date) => {
     const now = new Date();
@@ -70,6 +84,26 @@ const NewsDetail = () => {
     }
   };
 
+  const navigateToArticle = (item) => {
+    navigate(`/${item.category}/${item.id}`);
+  };
+
+  const getImageUrl = (image) => {
+    if (!image) return 'https://images.unsplash.com/photo-504711434969-e338f2762819?w=600';
+    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+  };
+
+  const getCategoryColor = (category) => {
+    const colors = {
+      main: 'bg-indigo-600',
+      society: 'bg-green-600',
+      local: 'bg-purple-600',
+      sports: 'bg-red-600',
+      more: 'bg-orange-600'
+    };
+    return colors[category] || 'bg-gray-600';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -86,13 +120,6 @@ const NewsDetail = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 text-xl mb-4">{error || 'News not found'}</p>
-          <button 
-            onClick={() => navigate('/news')}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
-          >
-            <ArrowLeft size={20} />
-            Back to News
-          </button>
         </div>
       </div>
     );
@@ -101,15 +128,6 @@ const NewsDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/news')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 transition"
-        >
-          <ArrowLeft size={20} />
-          <span className="font-medium">Back to News</span>
-        </button>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
@@ -117,7 +135,7 @@ const NewsDetail = () => {
               {/* Featured Image */}
               {news.image && (
                 <img
-                  src={news.image?.startsWith('http') ? news.image : `http://localhost:5000${news.image}`}
+                  src={getImageUrl(news.image)}
                   alt={news.title}
                   className="w-full h-96 object-cover"
                 />
@@ -140,20 +158,20 @@ const NewsDetail = () => {
                 <div className="flex flex-wrap items-center gap-6 pb-6 mb-6 border-b border-gray-200">
                   {/* Author Info */}
                   <div className="flex items-center gap-3">
-                    {news.journalistImage ? (
-                      <img
-                        src={news.journalistImage?.startsWith('http') ? news.journalistImage : `http://localhost:5000${news.journalistImage}`}
-                        alt={news.journalistName}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User size={24} className="text-gray-400" />
-                      </div>
-                    )}
+                    <img
+                      src={news.journalistImage 
+                        ? getImageUrl(news.journalistImage)
+                        : khulashaLogo
+                      }
+                      alt={news.journalistName || "Khulasha Nepal"}
+                      className={news.journalistImage 
+                        ? "w-12 h-12 rounded-full object-cover border-2 border-gray-200" 
+                        : "w-12 h-12 object-contain"
+                      }
+                    />
                     <div>
-                      <p className="font-semibold text-gray-900">{news.journalistName || 'Unknown Author'}</p>
-                      <p className="text-sm text-gray-500">Journalist</p>
+                      <p className="font-semibold text-gray-900">{news.journalistName || 'अज्ञात लेखक'}</p>
+                      <p className="text-sm text-gray-500">पत्रकार</p>
                     </div>
                   </div>
 
@@ -178,7 +196,7 @@ const NewsDetail = () => {
 
                 {/* Share Buttons */}
                 <div className="flex items-center gap-4 mb-8">
-                  <span className="text-gray-600 font-medium">Share:</span>
+                  <span className="text-gray-600 font-medium">साझेदारी गर्नुहोस्:</span>
                   <button
                     onClick={() => handleShare('facebook')}
                     className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -228,7 +246,7 @@ const NewsDetail = () => {
                         className="flex gap-4 cursor-pointer group"
                       >
                         <img
-                          src={item.image?.startsWith('http') ? item.image : `http://localhost:5000${item.image}`}
+                          src={getImageUrl(item.image)}
                           alt={item.title}
                           className="w-24 h-20 object-cover rounded-lg group-hover:opacity-80 transition"
                         />
@@ -245,15 +263,69 @@ const NewsDetail = () => {
                   </div>
                 </div>
               )}
-
-              {/* Ad Space */}
-              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center">
-                <p className="text-gray-600 font-medium text-lg">विज्ञापन क्षेत्र</p>
-                <p className="text-sm text-gray-500 mt-2">३०० × ६००</p>
-              </div>
             </div>
           </aside>
         </div>
+
+        {/* Mixed News from All Categories - Single Section */}
+        {mixedNews.length > 0 && (
+          <div className="mt-16">
+            <section className="bg-white rounded-2xl shadow-lg p-8">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">थप समाचारहरू</h2>
+                <p className="text-gray-600">सबै श्रेणीबाट छनोट गरिएका समाचारहरू</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {mixedNews.map((item) => (
+                  <div
+                    key={`${item.category}-${item.id}`}
+                    onClick={() => navigateToArticle(item)}
+                    className="group cursor-pointer bg-gray-50 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
+                  >
+                    <div className="relative overflow-hidden h-48">
+                      <img
+                        src={getImageUrl(item.image)}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      {/* Category Badge */}
+                      <div className={`absolute top-3 left-3 ${getCategoryColor(item.category)} text-white px-3 py-1 rounded-full text-xs font-semibold`}>
+                        {item.categoryNepali}
+                      </div>
+                    </div>
+                    
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition line-clamp-2 mb-2 text-lg">
+                        {item.title}
+                      </h3>
+                      
+                      {item.subtitle && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                          {item.subtitle}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center gap-2">
+                          {item.journalistImage && (
+                            <img 
+                              src={getImageUrl(item.journalistImage)} 
+                              alt={item.journalistName}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                          )}
+                          <span className="truncate">{item.journalistName}</span>
+                        </div>
+                        <span>{getTimeAgo(item.publishedDate)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   );

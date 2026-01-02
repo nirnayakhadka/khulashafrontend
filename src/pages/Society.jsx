@@ -2,30 +2,46 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 
+// Helper function to strip HTML tags
+const stripHtml = (html) => {
+  if (!html) return '';
+  const tmp = document.createElement('DIV');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+};
+
 function Society() {
   const navigate = useNavigate();
   const [societyData, setSocietyData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [slidesToShow, setSlidesToShow] = useState(3);
 
   useEffect(() => {
     fetchSocietyData();
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchSocietyData = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get('/society');
-      setSocietyData(response.data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load society articles');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleResize = () => {
+    setSlidesToShow(window.innerWidth < 768 ? 1 : 3);
   };
+
+const fetchSocietyData = async () => {
+  try {
+    setLoading(true);
+    const response = await axiosInstance.get('/news/category/society');
+    setSocietyData(response.data);
+    setError(null);
+  } catch (err) {
+    setError('Failed to load society articles');
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80';
@@ -33,13 +49,11 @@ function Society() {
   };
 
   const prevSlide = () => {
-    const slidesToShow = window.innerWidth < 768 ? 1 : 3;
     const maxIndex = Math.max(0, societyData.length - slidesToShow);
     setCurrentIndex((prev) => (prev === 0 ? maxIndex : prev - 1));
   };
 
   const nextSlide = () => {
-    const slidesToShow = window.innerWidth < 768 ? 1 : 3;
     const maxIndex = Math.max(0, societyData.length - slidesToShow);
     setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
   };
@@ -62,11 +76,11 @@ function Society() {
   if (error) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 text-xl mb-4">{error}</p>
+        <div className="text-center px-4">
+          <p className="text-red-600 text-lg md:text-xl mb-4">{error}</p>
           <button 
             onClick={fetchSocietyData}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition-transform"
           >
             Retry
           </button>
@@ -75,95 +89,197 @@ function Society() {
     );
   }
 
-  // Top Featured Stories - First 3 articles
   const featuredStories = societyData.slice(0, 3);
-
-  // Diverse Small Cards - Next 5 articles
   const smallCards = societyData.slice(3, 8);
-
-  // Politics Section - Next 5 articles
   const politicsStories = societyData.slice(8, 13);
-
-  // Carousel Images - All articles
   const carouselImages = societyData.length > 0 ? societyData : [];
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-20">
+  <div className="bg-white min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 pb-12">
 
+      {/* Hero Section */}
+      {societyData.length > 0 && (
+        <div className="mb-12 md:mb-20">
+          <div className="w-full">
+            {/* Make entire section clickable */}
+            <div 
+              onClick={() => handleCardClick(societyData[0].id)}
+              className="cursor-pointer"
+            >
+              {/* Title and Meta Above Photo - Centered */}
+              <div className="mb-4 md:mb-6 text-center max-w-4xl mx-auto">
+                {/* Title */}
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-3 text-gray-900 hover:text-blue-900 transition-colors">
+                  {stripHtml(societyData[0].title)}
+                </h2>
+                
+                {/* Meta Information */}
+                <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-gray-600">
+                  {societyData[0].journalistName && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        {societyData[0].journalistImage && (
+                          <img 
+                            src={getImageUrl(societyData[0].journalistImage)} 
+                            alt={societyData[0].journalistName}
+                            className="w-10 h-10 rounded-full border-2 border-gray-300 object-cover"
+                          />
+                        )}
+                        <span className="text-sm md:text-base">{societyData[0].journalistName}</span>
+                      </div>
+                      <span className="text-gray-400">•</span>
+                    </>
+                  )}
+                  {societyData[0].publishedDate && (
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
+                      </svg>
+                      <span className="text-sm md:text-base">
+                        {new Date(societyData[0].publishedDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Photo with Category Tag Inside */}
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl h-[400px] md:h-[500px] lg:h-[550px] group mb-4 md:mb-6">
+                <img 
+                  src={getImageUrl(societyData[0].image)} 
+                  alt={stripHtml(societyData[0].title)} 
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                />
+                
+                {/* Category Badge */}
+                <div className="absolute top-4 left-4 md:top-6 md:left-6">
+                </div>
+              </div>
+              
+              {/* Subtitle and Content Below Photo */}
+              <div className="space-y-3">
+                {/* Subtitle */}
+                {societyData[0].subtitle && (
+                  <h3 className="text-2xl font-semibold text-gray-800">
+                    {stripHtml(societyData[0].subtitle)}
+                  </h3>
+                )}
+                
+                {/* News Highlight - First line of content */}
+                {societyData[0].paragraph && (
+                  <p className="text-xl text-gray-700 line-clamp-2 leading-relaxed">
+                    {stripHtml(societyData[0].paragraph).split('\n')[0]}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
         {/* Top Featured Stories */}
         {featuredStories.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            {featuredStories.map(story => (
-              <div
-                key={story.id}
-                onClick={() => handleCardClick(story.id)}
-                className="group cursor-pointer overflow-hidden transition-all duration-500 hover:shadow-2xl"
-              >
-                <div className="overflow-hidden rounded-lg">
-                  <img
-                    src={getImageUrl(story.image)}
-                    alt={story.title}
-                    className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                </div>
-                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mt-4 mb-2">
-                  SOCIETY
-                </p>
-                <h3 className="text-xl font-bold text-gray-900 mb-3 leading-tight transition-colors group-hover:text-blue-700">
-                  {story.title}
-                </h3>
-                <p className="text-sm text-gray-600 line-clamp-3">
-                  {story.subtitle || story.paragraph?.substring(0, 150) + '...' || ''}
-                </p>
-              </div>
-            ))}
-          </div>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-16">
+  {featuredStories.map(story => (
+    <div
+      key={story.id}
+      onClick={() => handleCardClick(story.id)}
+      className="group cursor-pointer transition-all duration-300 hover:shadow-xl rounded-lg"
+    >
+      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 leading-tight transition-colors group-hover:text-blue-600 line-clamp-1">
+        {stripHtml(story.title)}
+      </h3>
+      <div className="relative overflow-hidden rounded-lg mb-3">
+        <img
+          src={getImageUrl(story.image)}
+          alt={stripHtml(story.title)}
+          className="w-full h-56 md:h-72 object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+      </div>
+      <p className="text-xl text-gray-600 line-clamp-1">
+        {stripHtml(story.subtitle || story.paragraph?.substring(0, 150) || '')}
+      </p>
+    </div>
+  ))}
+</div>
         )}
 
-        {/* Hero Section */}
-        {societyData.length > 0 && (
-          <div className="border-t border-b border-gray-200 py-16 mb-16 text-center">
-            <img
-              src={getImageUrl(societyData[0]?.journalistImage || societyData[0]?.image)}
-              alt="Hero portrait"
-              className="w-64 h-64 object-cover rounded-full mx-auto mb-8 shadow-2xl"
-            />
-            <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-6">
-              Society & Culture Stories
-            </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
-              Discover the stories that shape our community, explore cultural insights, and connect with the voices that matter.
-            </p>
+        {/* Additional Cards Section */}
+        {societyData.length > 13 && (
+          <div className="mb-12 md:mb-16">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 md:mb-6 pb-3 border-b border-gray-300">
+              MORE STORIES
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {societyData.slice(13).map(story => (
+                <div
+                  key={story.id}
+                  onClick={() => handleCardClick(story.id)}
+                  className="group cursor-pointer bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 active:scale-95"
+                >
+                  <div className="overflow-hidden">
+                    <img
+                      src={getImageUrl(story.image)}
+                      alt={stripHtml(story.title)}
+                      className="w-full h-44 md:h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <span className="inline-block px-3 py-1 text-xs font-semibold text-blue-600 bg-blue-50 rounded-full mb-2">
+                      SOCIETY
+                    </span>
+                    <h4 className="text-base md:text-lg font-bold text-gray-900 mb-2 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+                      {stripHtml(story.title)}
+                    </h4>
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                      {stripHtml(story.subtitle || story.paragraph?.substring(0, 120) + '...' || '')}
+                    </p>
+                    {story.publishedDate && (
+                      <p className="text-xs text-gray-400">
+                        {new Date(story.publishedDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Diverse Small Cards */}
-        {smallCards.length > 0 && (
-          <div className="mb-16">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-6 pb-3 border-b border-gray-300">
+{smallCards.length > 0 && (
+          <div className="mb-12 md:mb-16">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 md:mb-6 pb-3 border-b border-gray-300">
               DIVERSE
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
               {smallCards.map(card => (
                 <div
                   key={card.id}
                   onClick={() => handleCardClick(card.id)}
-                  className="group cursor-pointer transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl"
+                  className="group cursor-pointer transition-all duration-300 hover:shadow-lg rounded-lg active:scale-95"
                 >
-                  <div className="overflow-hidden rounded-lg mb-4">
+                  <div className="relative overflow-hidden rounded-lg mb-3">
                     <img
                       src={getImageUrl(card.image)}
-                      alt={card.title}
-                      className="w-full h-56 object-cover transition-transform duration-700 group-hover:scale-110"
+                      alt={stripHtml(card.title)}
+                      className="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   </div>
-                  <p className="text-xs font-semibold text-gray-600 uppercase mb-1">SOCIETY</p>
-                  <h4 className="text-base font-bold text-gray-900 leading-tight mb-2 transition-colors group-hover:text-blue-600 line-clamp-2">
-                    {card.title}
+                  <h4 className="text-sm md:text-base font-bold text-gray-900 leading-tight mb-1 transition-colors group-hover:text-blue-900 line-clamp-2">
+                    {stripHtml(card.title)}
                   </h4>
                   <p className="text-xs text-gray-600 line-clamp-2">
-                    {card.subtitle || card.paragraph?.substring(0, 100) + '...' || ''}
+                    {stripHtml(card.subtitle || card.paragraph?.substring(0, 100) + '...' || '')}
                   </p>
                 </div>
               ))}
@@ -171,62 +287,62 @@ function Society() {
           </div>
         )}
 
-        {/* Politics Section */}
+        {/* Featured Stories Section */}
         {politicsStories.length > 0 && (
-          <div className="mb-20">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-6 pb-3 border-b border-gray-300">
+          <div className="mb-12 md:mb-20">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 md:mb-6 pb-3 border-b border-gray-300">
               FEATURED STORIES
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
               <div 
                 className="md:col-span-2 group cursor-pointer"
                 onClick={() => handleCardClick(politicsStories[0].id)}
               >
-                <div className="overflow-hidden rounded-xl mb-6">
+                <h2 className="text-2xl md:text-4xl font-serif font-bold text-gray-900 mb-3 leading-tight transition-colors group-hover:text-blue-900">
+                  {stripHtml(politicsStories[0].title)}
+                </h2>
+                {politicsStories[0].publishedDate && (
+                  <p className="text-sm text-gray-500 mb-4 md:mb-6">
+                    {new Date(politicsStories[0].publishedDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                )}
+                <div className="overflow-hidden rounded-xl mb-4 md:mb-6">
                   <img
                     src={getImageUrl(politicsStories[0].image)}
-                    alt={politicsStories[0].title}
-                    className="w-full h-[500px] object-cover transition-transform duration-1000 group-hover:scale-105"
+                    alt={stripHtml(politicsStories[0].title)}
+                    className="w-full h-64 md:h-[500px] object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
-                <h2 className="text-4xl font-serif font-bold text-gray-900 mb-6 leading-tight transition-colors group-hover:text-blue-700">
-                  {politicsStories[0].title}
-                </h2>
-                <p className="text-lg text-gray-600 mb-8 line-clamp-4">
-                  {politicsStories[0].subtitle || politicsStories[0].paragraph?.substring(0, 300) + '...' || ''}
+                <p className="text-base md:text-2xl text-gray-600 line-clamp-3 md:line-clamp-4">
+                  {stripHtml(politicsStories[0].subtitle || politicsStories[0].paragraph?.substring(0, 300) + '...' || '')}
                 </p>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCardClick(politicsStories[0].id);
-                  }}
-                  className="px-8 py-3 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all duration-300 rounded"
-                >
-                  READ MORE
-                </button>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-6 md:space-y-8">
                 {politicsStories.slice(1).map(story => (
                   <div 
                     key={story.id} 
                     onClick={() => handleCardClick(story.id)}
-                    className="group cursor-pointer flex gap-4 border-b border-gray-200 pb-6 last:border-0 last:pb-0 transition-all hover:translate-x-2"
+                    className="group cursor-pointer flex gap-3 md:gap-4 border-b border-gray-200 pb-6 last:border-0 last:pb-0 transition-all hover:translate-x-1 active:scale-95"
                   >
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-base md:text-lg font-bold text-gray-900 leading-tight transition-colors group-hover:text-blue-900 line-clamp-2 mb-2">
+                        {stripHtml(story.title)}
+                      </h4>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {stripHtml(story.subtitle || story.paragraph || 'Read more about this story...')}
+                      </p>
+                    </div>
                     <div className="overflow-hidden rounded-lg flex-shrink-0">
                       <img
                         src={getImageUrl(story.image)}
-                        alt={story.title}
-                        className="w-32 h-32 object-cover transition-transform duration-700 group-hover:scale-110"
+                        alt={stripHtml(story.title)}
+                        className="w-24 h-24 md:w-32 md:h-32 object-cover transition-transform duration-500 group-hover:scale-110"
                       />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-gray-900 leading-tight transition-colors group-hover:text-blue-600 line-clamp-2">
-                        {story.title}
-                      </h4>
-                      <p className="text-sm text-gray-600 mt-2 line-clamp-2">
-                        {story.subtitle || ''}
-                      </p>
                     </div>
                   </div>
                 ))}
@@ -237,54 +353,40 @@ function Society() {
 
         {/* Featured Gallery Carousel */}
         {carouselImages.length > 0 && (
-          <div className="mb-16">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-8 pb-3 border-b border-gray-300">
+          <div className="mb-12 md:mb-16">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-6 md:mb-8 pb-3 border-b border-gray-300">
               FEATURED GALLERY
             </h3>
 
-            <div className="relative group max-w-7xl mx-auto">
-              <div className="overflow-hidden rounded-2xl shadow-2xl">
+            <div className="relative group">
+              <div className="overflow-hidden rounded-xl shadow-lg">
                 <div
                   className="flex transition-transform duration-700 ease-in-out"
                   style={{
-                    transform: `translateX(-${currentIndex * (window.innerWidth < 768 ? 100 : 100 / 3)}%)`
+                    transform: `translateX(-${currentIndex * (100 / slidesToShow)}%)`
                   }}
                 >
                   {carouselImages.map((image) => (
                     <div
                       key={image.id}
-                      className="w-full md:w-[33.333333%] flex-shrink-0 px-0 md:px-3"
+                      className={`flex-shrink-0 ${slidesToShow === 1 ? 'w-full' : 'w-1/3'} px-0 md:px-2`}
                       onClick={() => handleCardClick(image.id)}
                     >
-                      <div className="relative overflow-hidden rounded-xl h-[500px] md:h-[600px] group/item cursor-pointer bg-gray-900">
+                      <div className="relative overflow-hidden rounded-lg h-[300px] md:h-[450px] cursor-pointer bg-gray-900 group/item">
                         <img
                           src={getImageUrl(image.image)}
-                          alt={image.title}
-                          className="w-full h-full object-cover transition-transform duration-1000 group-hover/item:scale-110"
+                          alt={stripHtml(image.title)}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110"
                         />
 
-                        {/* Always Visible: Clean Title Overlay */}
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-6 md:p-8 pt-20">
-                          <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight drop-shadow-lg line-clamp-2">
-                            {image.title}
+                        {/* Title Overlay - Always Visible */}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 md:p-8 pt-16 md:pt-20">
+                          <h3 className="text-xl md:text-3xl font-bold text-white leading-tight drop-shadow-lg line-clamp-2 hover:text-blue-900">
+                            {stripHtml(image.title)}
                           </h3>
                         </div>
 
-                        {/* On Hover/Tap: Subtitle + Date */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-600 flex flex-col justify-end p-6 md:p-8">
-                          <div className="text-white">
-                            <span className="inline-block px-4 py-1.5 text-xs font-semibold bg-blue-600 rounded-full mb-4 shadow-md">
-                              {new Date(image.publishedDate).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
-                            </span>
-                            <p className="text-lg md:text-xl text-gray-100 leading-relaxed max-w-lg line-clamp-3">
-                              {image.subtitle || image.paragraph?.substring(0, 150) || ''}
-                            </p>
-                          </div>
-                        </div>
+
                       </div>
                     </div>
                   ))}
@@ -292,24 +394,24 @@ function Society() {
               </div>
 
               {/* Navigation Arrows */}
-              {carouselImages.length > 3 && (
+              {carouselImages.length > slidesToShow && (
                 <>
                   <button
-                    onClick={prevSlide}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 z-10 md:opacity-0 md:group-hover:opacity-100"
+                    onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white text-gray-800 p-2 md:p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 z-10"
                     aria-label="Previous slide"
                   >
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
 
                   <button
-                    onClick={nextSlide}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 z-10 md:opacity-0 md:group-hover:opacity-100"
+                    onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white text-gray-800 p-2 md:p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 z-10"
                     aria-label="Next slide"
                   >
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
@@ -317,16 +419,16 @@ function Society() {
               )}
 
               {/* Dots Indicator */}
-              {carouselImages.length > 3 && (
-                <div className="flex justify-center mt-10 space-x-3">
-                  {Array.from({ length: Math.max(0, carouselImages.length - 2) }).map((_, idx) => (
+              {carouselImages.length > slidesToShow && (
+                <div className="flex justify-center mt-6 md:mt-10 space-x-2 md:space-x-3">
+                  {Array.from({ length: Math.max(0, carouselImages.length - (slidesToShow - 1)) }).map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => setCurrentIndex(idx)}
-                      className={`transition-all duration-500 rounded-full ${
+                      className={`transition-all duration-300 rounded-full ${
                         idx === currentIndex
-                          ? 'bg-blue-600 w-12 h-3'
-                          : 'bg-gray-300 w-3 h-3 hover:bg-gray-500'
+                          ? 'bg-blue-600 w-8 md:w-12 h-2 md:h-3'
+                          : 'bg-gray-300 w-2 md:w-3 h-2 md:h-3 hover:bg-gray-500'
                       }`}
                       aria-label={`Go to slide ${idx + 1}`}
                     />
@@ -339,13 +441,13 @@ function Society() {
 
         {/* Empty State */}
         {societyData.length === 0 && !loading && (
-          <div className="text-center py-20">
+          <div className="text-center py-12 md:py-20 px-4">
             <div className="text-gray-400 mb-4">
-              <svg className="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-16 h-16 md:w-24 md:h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold text-gray-600 mb-2">No society articles yet</h3>
+            <h3 className="text-xl md:text-2xl font-semibold text-gray-600 mb-2">No society articles yet</h3>
             <p className="text-gray-500">Check back later for new content</p>
           </div>
         )}

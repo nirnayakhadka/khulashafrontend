@@ -104,9 +104,9 @@ const Footer = () => {
           <div className="flex items-center gap-6">
             <p>Follow Us</p>
             <div className="flex gap-4 text-2xl">
-              <span>📘</span> {/* Facebook */}
-              <span>🐦</span> {/* Twitter/X */}
-              <span>💬</span> {/* WhatsApp or Messenger */}
+              <span>Facebook</span> {/* Facebook */}
+              <span>x</span> {/* Twitter/X */}
+              <span>WhatsApp</span> {/* WhatsApp or Messenger */}
             </div>
           </div>
         </div>

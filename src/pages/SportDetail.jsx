@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // ← ADD useParams + useNavigate
-import { Calendar, Clock, User, ArrowLeft, Share2, Facebook, Twitter, MessageCircle, TrendingUp, Flame, Eye } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Calendar, Clock, User, ArrowLeft, Share2, Facebook, Twitter, MessageCircle, TrendingUp, Flame, Eye, Linkedin } from 'lucide-react';
+import khulashaLogo from '../assets/image/khulashalogo.png';
 
-const SportDetail = () => { // ← Remove props (articleId, onBack)
-  const { id } = useParams(); // ← GET ID from URL (/sports/123 → id = "123")
-  const navigate = useNavigate(); // ← For back button
+const SportDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [article, setArticle] = useState(null);
   const [suggestedArticles, setSuggestedArticles] = useState([]);
+  const [mixedNews, setMixedNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -14,42 +16,52 @@ const SportDetail = () => { // ← Remove props (articleId, onBack)
     if (id) {
       fetchArticleAndSuggestions();
     }
-  }, [id]); // ← Depend on id from URL
+    window.scrollTo(0, 0);
+  }, [id]);
 
-  const fetchArticleAndSuggestions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log(`🔍 Fetching sports article ID: ${id}`); // ← DEBUG
+const fetchArticleAndSuggestions = async () => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      // 1. Fetch SINGLE article (FAST + CORRECT)
-      const articleResponse = await fetch(`http://localhost:5000/api/sports/${id}`);
-      if (!articleResponse.ok) {
-        throw new Error(`Article fetch failed: ${articleResponse.status}`);
-      }
-      const articleData = await articleResponse.json();
-      console.log('📄 Article:', articleData); // ← DEBUG
-      setArticle(articleData);
+    // Fetch article detail, suggestions, and mixed news in parallel
+    const [articleResponse, suggestionsResponse, mixedResponse] = await Promise.all([
+      fetch(`http://localhost:5000/api/news/${id}`),
+      fetch('http://localhost:5000/api/news/category/sports'),
+      fetch(`http://localhost:5000/api/news/mixed-feed/${id}?limit=18`)
+    ]);
 
-      // 2. Fetch suggestions (all sports except current)
-      const suggestionsResponse = await fetch('http://localhost:5000/api/sports');
-      if (!suggestionsResponse.ok) {
-        throw new Error('Suggestions fetch failed');
-      }
+    // Handle article
+    if (!articleResponse.ok) {
+      throw new Error(`Article fetch failed: ${articleResponse.status}`);
+    }
+    const articleData = await articleResponse.json();
+    setArticle(articleData);
+
+    // Handle suggestions (related sports articles)
+    if (suggestionsResponse.ok) {
       const allArticles = await suggestionsResponse.json();
       const suggestions = allArticles
-        .filter(item => item.id != id) // ← Use != for string/number safety
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 6);
+        .filter(item => item.id != id)
+        .slice(0, 8);
       setSuggestedArticles(suggestions);
-
-    } catch (err) {
-      console.error('❌ Error:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // Handle mixed news from all categories
+    if (mixedResponse.ok) {
+      const mixedData = await mixedResponse.json();
+      setMixedNews(mixedData);
+    }
+
+  } catch (err) {
+    console.error('❌ Error:', err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const getTimeAgo = (date) => {
     const now = new Date();
@@ -59,9 +71,11 @@ const SportDetail = () => { // ← Remove props (articleId, onBack)
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
     if (diffInHours < 1) return 'भर्खरै';
-    if (diffInHours < 24) return `${diffInHours} घण्टा अगाडि`;
-    if (diffInDays === 1) return '१ दिन अगाडि';
-    return `${diffInDays} दिन अगाडि`;
+    if (diffInHours < 24) return `${diffInHours} घण्टा अघि`;
+    if (diffInDays === 1) return '१ दिन अघि';
+    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
+    return `${Math.floor(diffInDays / 30)} महिना अघि`;
   };
 
   const formatDate = (date) => {
@@ -79,6 +93,7 @@ const SportDetail = () => { // ← Remove props (articleId, onBack)
     const shareUrls = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
       whatsapp: `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`
     };
     
@@ -87,8 +102,25 @@ const SportDetail = () => { // ← Remove props (articleId, onBack)
     }
   };
 
-  // Back button handler
-  const handleBack = () => navigate(-1); // ← Go back in history
+  const navigateToArticle = (item) => {
+    navigate(`/${item.category}/${item.id}`);
+  };
+
+  const getImageUrl = (image) => {
+    if (!image) return 'https://images.unsplash.com/photo-1504711434969-e338f2762819?w=600';
+    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+  };
+
+  const getCategoryColor = (category) => {
+    const colors = {
+      main: 'bg-indigo-600',
+      news: 'bg-blue-600',
+      society: 'bg-green-600',
+      local: 'bg-purple-600',
+      more: 'bg-orange-600'
+    };
+    return colors[category] || 'bg-gray-600';
+  };
 
   if (loading) {
     return (
@@ -105,14 +137,8 @@ const SportDetail = () => { // ← Remove props (articleId, onBack)
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-          <p className="text-red-600 font-medium mb-4">समाचार लोड गर्न असफल भयो (ID: {id})</p>
+          <p className="text-red-600 font-medium mb-4">समाचार लोड गर्न असफल भयो</p>
           <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={handleBack}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition"
-          >
-            सबै खेलकुद समाचारमा फर्कनुहोस्
-          </button>
         </div>
       </div>
     );
@@ -120,190 +146,199 @@ const SportDetail = () => { // ← Remove props (articleId, onBack)
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sticky Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleBack} // ← Fixed back button
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition"
-            >
-              <ArrowLeft size={20} />
-              <span className="hidden sm:inline">सबै खेलकुद समाचारमा फर्कनुहोस्</span>
-              <span className="sm:hidden">फिर्ता</span>
-            </button>
-            
-            {/* Share Buttons */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 hidden sm:inline">साझा गर्नुहोस्:</span>
-              <button onClick={() => handleShare('facebook')} className="p-2 hover:bg-blue-50 rounded-lg transition text-blue-600" title="Facebook">
-                <Facebook size={20} />
-              </button>
-              <button onClick={() => handleShare('twitter')} className="p-2 hover:bg-sky-50 rounded-lg transition text-sky-600" title="Twitter">
-                <Twitter size={20} />
-              </button>
-              <button onClick={() => handleShare('whatsapp')} className="p-2 hover:bg-green-50 rounded-lg transition text-green-600" title="WhatsApp">
-                <MessageCircle size={20} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Article Content */}
-          <article className="lg:col-span-2">
-            {/* Hero Image */}
-            <div className="relative h-96 rounded-2xl overflow-hidden shadow-2xl mb-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <article className="bg-white rounded-2xl shadow-lg overflow-hidden">
+              {/* Featured Image */}
               {article.image && (
                 <img
-                  src={`http://localhost:5000${article.image}`}
+                  src={getImageUrl(article.image)}
                   alt={article.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-96 object-cover"
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            </div>
 
-            {/* Article Header */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-              <h1 className="text-4xl font-bold text-gray-900 mb-6 leading-tight">
-                {article.title}
-              </h1>
-              {article.subtitle && (
-                <p className="text-xl text-gray-600 mb-6 leading-relaxed border-l-4 border-blue-600 pl-4">
-                  {article.subtitle}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center gap-3">
-                  {article.journalistImage ? (
+              <div className="p-8">
+                {/* Title */}
+                <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                  {article.title}
+                </h1>
+
+                {/* Subtitle */}
+                {article.subtitle && (
+                  <p className="text-xl text-gray-600 mb-6 leading-relaxed">
+                    {article.subtitle}
+                  </p>
+                )}
+
+                {/* Meta Information */}
+                <div className="flex flex-wrap items-center gap-6 pb-6 mb-6 border-b border-gray-200">
+                  {/* Author Info */}
+                  <div className="flex items-center gap-3">
                     <img
-                      src={`http://localhost:5000${article.journalistImage}`}
-                      alt={article.journalistName}
-                      className="w-14 h-14 rounded-full object-cover border-2 border-blue-200 shadow"
+                      src={article.journalistImage 
+                        ? getImageUrl(article.journalistImage)
+                        : khulashaLogo
+                      }
+                      alt={article.journalistName || "Khulasha Nepal"}
+                      className={article.journalistImage 
+                        ? "w-12 h-12 rounded-full object-cover border-2 border-gray-200" 
+                        : "w-12 h-12 object-contain"
+                      }
                     />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow">
-                      <User size={28} className="text-white" />
+                    <div>
+                      <p className="font-semibold text-gray-900">{article.journalistName || 'अज्ञात लेखक'}</p>
+                      <p className="text-sm text-gray-500">पत्रकार</p>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">लेखक</p>
-                    <p className="font-bold text-gray-900 text-lg">{article.journalistName || 'अज्ञात'}</p>
+                  </div>
+
+                  {/* Date */}
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar size={18} />
+                    <span>{formatDate(article.publishedDate)}</span>
+                  </div>
+
+                  {/* Time Ago */}
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock size={18} />
+                    <span>{getTimeAgo(article.publishedDate)}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar size={20} className="text-blue-600" />
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">प्रकाशित मिति</p>
-                    <p className="font-semibold">{formatDate(article.publishedDate)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Clock size={20} className="text-blue-600" />
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">समय</p>
-                    <p className="font-semibold">{getTimeAgo(article.publishedDate)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Article Body */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <div
-                className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
-                style={{ lineHeight: '1.8', fontSize: '18px' }}
-                dangerouslySetInnerHTML={{ __html: article.paragraph || article.content || '' }} // ← Fallback for content field
-              />
-            </div>
-
-            {/* Share Section */}
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl p-6 mt-8">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Share2 size={24} className="text-blue-600" />
-                  <span className="text-lg font-semibold text-gray-900">यो समाचार साझा गर्नुहोस्</span>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => handleShare('facebook')} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition flex items-center gap-2 shadow">
-                    <Facebook size={18} /> Facebook
+                {/* Share Buttons */}
+                <div className="flex items-center gap-4 mb-8">
+                  <span className="text-gray-600 font-medium">साझेदारी गर्नुहोस्:</span>
+                  <button
+                    onClick={() => handleShare('facebook')}
+                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    title="Facebook"
+                  >
+                    <Facebook size={20} />
                   </button>
-                  <button onClick={() => handleShare('twitter')} className="px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white rounded-lg font-medium transition flex items-center gap-2 shadow">
-                    <Twitter size={18} /> Twitter
+                  <button
+                    onClick={() => handleShare('twitter')}
+                    className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition"
+                    title="Twitter"
+                  >
+                    <Twitter size={20} />
                   </button>
-                  <button onClick={() => handleShare('whatsapp')} className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition flex items-center gap-2 shadow">
-                    <MessageCircle size={18} /> WhatsApp
+                  <button
+                    onClick={() => handleShare('linkedin')}
+                    className="p-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition"
+                    title="LinkedIn"
+                  >
+                    <Linkedin size={20} />
                   </button>
                 </div>
-              </div>
-            </div>
-          </article>
 
-          {/* Sidebar - Suggested Articles */}
-          <aside className="lg:col-span-1">
-            <div className="sticky top-24 space-y-6">
-              <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-6 text-white shadow-xl">
-                <div className="flex items-center gap-2 mb-4">
-                  <Flame size={24} />
-                  <h3 className="text-xl font-bold">ट्रेन्डिङ समाचार</h3>
-                </div>
-                <p className="text-orange-100 text-sm">अहिले सबैभन्दा धेरै पढिएका खेलकुद समाचारहरू</p>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <TrendingUp size={20} className="text-blue-600" />
-                  <h3 className="text-lg font-bold text-gray-900">अन्य समाचारहरू</h3>
-                </div>
-                <div className="space-y-4">
-                  {suggestedArticles.map((suggested) => (
-                    <button
-                      key={suggested.id}
-                      onClick={() => navigate(`/sports/${suggested.id}`)} // ← Use navigate
-                      className="block w-full group text-left"
-                    >
-                      <div className="flex gap-3 p-3 rounded-lg hover:bg-blue-50 transition">
-                        <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden">
-                          {suggested.image ? (
-                            <img
-                              src={`http://localhost:5000${suggested.image}`}
-                              alt={suggested.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                              <Eye size={20} className="text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 group-hover:text-blue-600 transition mb-2">
-                            {suggested.title}
-                          </h4>
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <Clock size={12} />
-                            <span>{getTimeAgo(suggested.publishedDate)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                {suggestedArticles.length === 0 && (
-                  <p className="text-gray-500 text-sm text-center py-4">अन्य समाचार उपलब्ध छैन</p>
+                {/* Content */}
+                {(article.paragraph || article.content) && (
+                  <div 
+                    className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: article.paragraph || article.content }}
+                  />
                 )}
               </div>
+            </article>
+          </div>
 
-              <div className="bg-gray-100 rounded-2xl p-8 text-center border-2 border-dashed border-gray-300">
-                <p className="text-gray-500 font-medium mb-2">विज्ञापन स्थान</p>
-                <p className="text-gray-400 text-sm">300 x 250</p>
-              </div>
+          {/* Sidebar */}
+          <aside className="lg:col-span-1">
+            <div className="sticky top-8 space-y-6">
+              {/* Related Articles */}
+              {suggestedArticles.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                  <h3 className="text-2xl font-bold mb-6 text-gray-900">सम्बन्धित समाचार</h3>
+                  <div className="space-y-6">
+                    {suggestedArticles.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => navigate(`/sports/${item.id}`)}
+                        className="flex gap-4 cursor-pointer group"
+                      >
+                        <img
+                          src={getImageUrl(item.image)}
+                          alt={item.title}
+                          className="w-24 h-20 object-cover rounded-lg group-hover:opacity-80 transition"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition line-clamp-2">
+                            {item.title}
+                          </p>
+                          <span className="text-sm text-gray-500 mt-1 block">
+                            {getTimeAgo(item.publishedDate)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         </div>
+
+        {/* Mixed News from All Categories - Single Section */}
+        {mixedNews.length > 0 && (
+          <div className="mt-16">
+            <section className="bg-white rounded-2xl shadow-lg p-8">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">थप समाचारहरू</h2>
+                <p className="text-gray-600">सबै श्रेणीबाट छनोट गरिएका समाचारहरू</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {mixedNews.map((item) => (
+                  <div
+                    key={`${item.category}-${item.id}`}
+                    onClick={() => navigateToArticle(item)}
+                    className="group cursor-pointer bg-gray-50 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
+                  >
+                    <div className="relative overflow-hidden h-48">
+                      <img
+                        src={getImageUrl(item.image)}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      {/* Category Badge */}
+                      <div className={`absolute top-3 left-3 ${getCategoryColor(item.category)} text-white px-3 py-1 rounded-full text-xs font-semibold`}>
+                        {item.categoryNepali}
+                      </div>
+                    </div>
+                    
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition line-clamp-2 mb-2 text-lg">
+                        {item.title}
+                      </h3>
+                      
+                      {item.subtitle && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                          {item.subtitle}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center gap-2">
+                          {item.journalistImage && (
+                            <img 
+                              src={getImageUrl(item.journalistImage)} 
+                              alt={item.journalistName}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                          )}
+                          <span className="truncate">{item.journalistName}</span>
+                        </div>
+                        <span>{getTimeAgo(item.publishedDate)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   );

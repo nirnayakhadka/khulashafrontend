@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X } from 'lucide-react'; // or replace with your preferred icon library
+import { Menu, X } from 'lucide-react';
 
 function MiniNav() {
   const menuItems = [
@@ -14,16 +14,16 @@ function MiniNav() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="sticky top-0 z-50 bg-blue-950 border-t border-blue-800 shadow-md">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Desktop / Tablet view */}
-        <nav className="hidden sm:flex py-6">
+    <div className="sticky top-0 z-[100] bg-blue-950 border-t border-blue-800 shadow-md ">
+      <div className="max-w-4xl mx-auto px-4 ">
+        {/* Desktop view only (large screens) */}
+        <nav className="hidden lg:flex py-6">
           <ul className="
             flex flex-row 
             justify-center 
             items-center 
-            gap-8 lg:gap-20 
-            text-xl lg:text-2xl 
+            gap-20 
+            text-2xl 
             font-bold 
             text-white
           ">
@@ -47,8 +47,8 @@ function MiniNav() {
           </ul>
         </nav>
 
-        {/* Mobile Hamburger Menu */}
-        <div className="sm:hidden relative">
+        {/* Hamburger Menu (Mobile + Tablet) */}
+        <div className="lg:hidden relative">
           {/* Hamburger Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -62,7 +62,7 @@ function MiniNav() {
             )}
           </button>
 
-          {/* Mobile Menu Dropdown */}
+          {/* Mobile/Tablet Menu Dropdown */}
           {isOpen && (
             <div className="absolute top-full left-0 right-0 bg-blue-950 border-t border-blue-800 z-50 shadow-lg">
               <ul className="flex flex-col items-center py-6 space-y-6 text-lg font-bold text-white">
@@ -70,7 +70,7 @@ function MiniNav() {
                   <li key={index} className="w-full text-center">
                     <a
                       href={item.path}
-                      onClick={() => setIsOpen(false)} // Close menu after click
+                      onClick={() => setIsOpen(false)}
                       className="
                         block 
                         py-3 
