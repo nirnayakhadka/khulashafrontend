@@ -25,7 +25,11 @@ const fetchNews = async () => {
     setLoading(true);
     // Filter by 'news' category
     const response = await axiosInstance.get('/news/category/news');
-    setNewsList(response.data);
+    // Handle the response properly - extract the array from the object
+    const articles = response.data.success && Array.isArray(response.data.data) 
+  ? response.data.data 
+  : [];
+setNewsList(articles);
     setError(null);
   } catch (err) {
     setError('Failed to load news');

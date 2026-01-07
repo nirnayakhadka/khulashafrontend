@@ -276,14 +276,22 @@ function Local() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchLocalNews = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(API_BASE_URL);
-      if (!response.ok) throw new Error('Failed to fetch local news');
-      const data = await response.json();
-      setLocalNews(data);
+const fetchLocalNews = useCallback(async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    const response = await fetch(API_BASE_URL);
+    if (!response.ok) throw new Error('Failed to fetch local news');
+    const data = await response.json();
+    
+    // Handle the response - extract array from object
+    const articles = data.success && Array.isArray(data.data) 
+      ? data.data 
+      : Array.isArray(data) 
+        ? data 
+        : [];
+    
+    setLocalNews(articles);
     } catch (err) {
       setError('Failed to load local news articles');
       console.error('Error fetching local news:', err);

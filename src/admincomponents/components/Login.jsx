@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import axiosInstance from '../../api/axios';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -15,9 +16,6 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  // API Base URL from environment variable
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   // Input validation
   const validateForm = () => {
@@ -74,55 +72,64 @@ const Login = () => {
     setErrors({});
 
     try {
-      // Call your backend API
-      const response = await fetch(`${API_URL}/admins/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
+      // Call backend API using axiosInstance
+      const response = await axiosInstance.post('/admin/login', {
+        email: formData.email,
+        password: formData.password
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      // Check if request was successful
-      if (!response.ok) {
-        // Failed login
-        const newAttempts = loginAttempts + 1;
-        setLoginAttempts(newAttempts);
+      // Check if login was successful
+      if (data.success) {
+        const { user, token } = data;
 
-        if (newAttempts >= 5) {
-          setIsLocked(true);
-          setTimeout(() => {
-            setIsLocked(false);
-            setLoginAttempts(0);
-          }, 15 * 60 * 1000); // 15 minutes
-          throw new Error('Too many failed attempts. Account locked for 15 minutes.');
+        // Save to sessionStorage
+        sessionStorage.setItem('authToken', token);
+        sessionStorage.setItem('user', JSON.stringify(user));
+
+        // Login through context
+        login(user, token);
+
+        // Reset attempts
+        setLoginAttempts(0);
+
+        console.log('✅ Login successful, navigating to dashboard...');
+
+        // Navigate based on role
+        if (user.role === 'admin') {
+          navigate('/admin/dashboard', { replace: true });
+        } else if (user.role === 'journalist') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          navigate('/admin/dashboard', { replace: true });
         }
-
-        throw new Error(data.message || 'Invalid email or password');
+      } else {
+        throw new Error(data.message || 'Login failed');
       }
 
-      // Successful login
-      const { admin, token } = data;
-
-      // Login through context
-      login(admin, token);
-
-      // Reset attempts
-      setLoginAttempts(0);
-
-      // Navigate to dashboard
-      navigate('/admin/dashboard');
-
     } catch (error) {
-      console.error('Login error:', error);
-      setErrors({ 
-        submit: error.message || 'Login failed. Please check your connection and try again.' 
-      });
+      console.error('❌ Login error:', error);
+
+      // Handle failed login
+      const newAttempts = loginAttempts + 1;
+      setLoginAttempts(newAttempts);
+
+      if (newAttempts >= 5) {
+        setIsLocked(true);
+        setTimeout(() => {
+          setIsLocked(false);
+          setLoginAttempts(0);
+        }, 15 * 60 * 1000); // 15 minutes
+        setErrors({ 
+          submit: 'Too many failed attempts. Account locked for 15 minutes.' 
+        });
+      } else {
+        setErrors({ 
+          submit: error.response?.data?.message || error.message || 'Invalid email or password',
+          attempts: newAttempts < 5 ? `${5 - newAttempts} attempts remaining` : null
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -148,9 +155,9 @@ const Login = () => {
             {errors.submit && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {errors.submit}
-                {loginAttempts > 0 && loginAttempts < 5 && (
+                {errors.attempts && (
                   <span className="block mt-1 font-medium">
-                    {5 - loginAttempts} attempts remaining
+                    {errors.attempts}
                   </span>
                 )}
               </div>
@@ -277,16 +284,16 @@ const Login = () => {
           {/* Demo Info */}
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-center text-xs text-gray-500">
-              Create an admin account first using the backend API
+              Protected by role-based access control
             </p>
           </div>
         </div>
 
         {/* Additional Info */}
         <p className="mt-6 text-center text-sm text-white/80">
-          Don't have an account?{' '}
-          <a href="/register" className="font-semibold text-white hover:text-white/90 underline">
-            Sign up
+          Need help?{' '}
+          <a href="/contact" className="font-semibold text-white hover:text-white/90 underline">
+            Contact support
           </a>
         </p>
       </div>

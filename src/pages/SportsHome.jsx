@@ -66,7 +66,7 @@ const SportsHome = ({ news = [] }) => {
     return (
       <div className="mb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center py-12 text-gray-500">
-          खेलकुद समाचार खण्डमा कुनै सामग्री छैन
+         
         </div>
       </div>
     );

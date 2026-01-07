@@ -36,11 +36,22 @@ const fetchArticleAndSuggestions = async () => {
       throw new Error(`Article fetch failed: ${articleResponse.status}`);
     }
     const articleData = await articleResponse.json();
-    setArticle(articleData);
+    // Extract article from response
+    const article = articleData.success && articleData.data 
+      ? articleData.data 
+      : articleData;
+    setArticle(article);
 
     // Handle suggestions (related sports articles)
     if (suggestionsResponse.ok) {
-      const allArticles = await suggestionsResponse.json();
+      const suggestionsData = await suggestionsResponse.json();
+      // Extract array from response
+      const allArticles = suggestionsData.success && Array.isArray(suggestionsData.data)
+        ? suggestionsData.data
+        : Array.isArray(suggestionsData)
+          ? suggestionsData
+          : [];
+      
       const suggestions = allArticles
         .filter(item => item.id != id)
         .slice(0, 8);
@@ -50,7 +61,13 @@ const fetchArticleAndSuggestions = async () => {
     // Handle mixed news from all categories
     if (mixedResponse.ok) {
       const mixedData = await mixedResponse.json();
-      setMixedNews(mixedData);
+      // Extract array from response
+      const mixed = mixedData.success && Array.isArray(mixedData.data)
+        ? mixedData.data
+        : Array.isArray(mixedData)
+          ? mixedData
+          : [];
+      setMixedNews(mixed);
     }
 
   } catch (err) {

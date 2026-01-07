@@ -37,30 +37,39 @@ const Dashboard = () => {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 
-      if (res.ok) {
-        const allArticles = await res.json();
-        
-        // Count articles by category
-        const categoryCounts = {
-          news: allArticles.filter(article => article.category === 'news').length,
-          local: allArticles.filter(article => article.category === 'local').length,
-          society: allArticles.filter(article => article.category === 'society').length,
-          sports: allArticles.filter(article => article.category === 'sports').length,
-          more: allArticles.filter(article => article.category === 'more').length,
-          totalArticles: allArticles.length
-        };
+if (res.ok) {
+  const response = await res.json();
+  
+  // ✅ Handle backend response format: { success: true, data: [...] } or just [...]
+  const allArticles = Array.isArray(response.data) 
+    ? response.data 
+    : Array.isArray(response) 
+      ? response 
+      : [];
+  
+  console.log('✅ Dashboard loaded:', allArticles.length, 'articles');
+  
+  // Count articles by category
+  const categoryCounts = {
+    news: allArticles.filter(article => article.category === 'news').length,
+    local: allArticles.filter(article => article.category === 'local').length,
+    society: allArticles.filter(article => article.category === 'society').length,
+    sports: allArticles.filter(article => article.category === 'sports').length,
+    more: allArticles.filter(article => article.category === 'more').length,
+    totalArticles: allArticles.length
+  };
 
-        setStats(categoryCounts);
+  setStats(categoryCounts);
 
-        // Get recent activities - latest 6 articles
-        const sortedArticles = allArticles
-          .sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate))
-          .slice(0, 6);
-        
-        setRecentActivities(sortedArticles);
-      } else {
-        setError('Failed to fetch articles');
-      }
+  // Get recent activities - latest 6 articles
+  const sortedArticles = allArticles
+    .sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate))
+    .slice(0, 6);
+  
+  setRecentActivities(sortedArticles);
+} else {
+  setError('Failed to fetch articles');
+}
     } catch (err) {
       setError('Failed to load dashboard data. Please try refreshing.');
       console.error('Fetch error:', err);

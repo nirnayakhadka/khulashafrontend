@@ -18,14 +18,22 @@ const fetchArticles = async () => {
   try {
     setLoading(true);
     const response = await axiosInstance.get('/news/category/more');
-    setArticles(response.data);
+    
+    // Extract array from API response
+    const articles = response.data.success && Array.isArray(response.data.data) 
+      ? response.data.data 
+      : Array.isArray(response.data) 
+        ? response.data 
+        : [];
+    
+    setArticles(articles);
   } catch (error) {
     console.error('Error fetching articles:', error);
+    setArticles([]); // Set empty array on error
   } finally {
     setLoading(false);
   }
 };
-
   const carouselCards = articles.slice(0, 5).map((article) => ({
     id: article.id,
     image: article.image ? `http://localhost:5000${article.image}` : "https://images.unsplash.com/photo-1523995462485-3d171b5c8fa9?w=800&q=80",

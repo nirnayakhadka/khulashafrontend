@@ -1,35 +1,43 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-//  to protect crud and admin and i use and connect to frontend (axious used sequelize , database: sql , hashed pass for admin)
-//  nodejs for backend jwt token is generated in backend and used in frontend
 import { AuthProvider } from './context/AuthContext';
+
 // Layout Components 
 import PublicLayout from './layouts/PublicLayout';
 import AdminLayout from './layouts/AdminLayout';
-// Public Pages (call kalpa get api (only)
+
+// Public Pages
 import Main from './pages/Main';
 import NewsDetail from './pages/NewsDetail';
+import CategoryPage from './pages/CategoryPage'; // NEW: Single dynamic category page
+
+// Legacy category pages (optional - keep for backward compatibility or remove)
 import News from './pages/News';
 import Society from './pages/Society';
 import Local from './pages/Local';
 import More from './pages/More';
 import Sports from './pages/Sports';
-// Auth nd Protected  routes
-import Login from './admincomponents/components/Login';
-import ProtectedRoute from './admincomponents/components/ProtectedRoute';
-//for my Admin Pages
-import AdminDashboard from './admincomponents/pages/Dashboard';
-import LocalManagement from './admincomponents/pages/LocalManagement';
 
-import UnifiedNewsForm from './admincomponents/pages/Localform';
-
+// Detail pages (now also dynamic)
 import SocietyDetail from './pages/SocietyDetail';
 import LocalDetail from './pages/LocalDetail';
 import SportDetail from './pages/SportDetail';
 import MoreDetail from './pages/MoreDetail';
 import MainDetail from './pages/MainDetail';
-// for 3 logics in main page 
 
+// Auth & Protected routes
+import Login from './admincomponents/components/Login';
+import ProtectedRoute from './admincomponents/components/ProtectedRoute';
 
+// Admin Pages
+import AdminDashboard from './admincomponents/pages/Dashboard';
+import LocalManagement from './admincomponents/pages/LocalManagement';
+import UnifiedNewsForm from './admincomponents/pages/Localform';
+import Category from './admincomponents/pages/Category';
+import Setting from './admincomponents/pages/Setting';  
+import Authors from './admincomponents/pages/Author';
+import FooterSettings from './admincomponents/pages/Fotersetting';
+import Ourteam from './pages/Ourteam';
+import Ourteamsetting from './admincomponents/pages/Ourteamsetting';
 function App() {
   return (
     <AuthProvider>
@@ -37,21 +45,24 @@ function App() {
         {/* Public Routes - with Nav/MiniNav/Footer */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Main />} />
+          
+          {/* NEW: Dynamic category routes - ANY category will work! */}
+          <Route path="/:category" element={<CategoryPage />} />
+          <Route path="/:category/:id" element={<NewsDetail />} />
           <Route path="/news" element={<News />} />
           <Route path="/society" element={<Society />} />
           <Route path="/local" element={<Local />} />
           <Route path="/sports" element={<Sports />} />
           <Route path="/more" element={<More />} />
+          <Route path="/ourteam" element={<Ourteam />} />
           <Route path="/news/:id" element={<NewsDetail />} />
-                  {/* detail */}
           <Route path="/society/:id" element={<SocietyDetail />} />
           <Route path="/local/:id" element={<LocalDetail />} />
           <Route path="/sports/:id" element={<SportDetail />} />
-          <Route path="/more/:id" element={<MoreDetail/>} />
-          <Route path='/main/:id' element={<MainDetail/>} />
-
-
-
+          <Route path="/more/:id" element={<MoreDetail />} />
+          
+          
+          <Route path="/main/:id" element={<MainDetail />} />
         </Route>
 
         {/* Login Routes - No Nav/Footer */}
@@ -64,10 +75,11 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/local/*" element={<LocalManagement />} />
             <Route path="/admin/local/add" element={<UnifiedNewsForm />} />
-
-
-            {/* detail */}
-            
+            <Route path="/admin/category" element={<Category />} />
+            <Route path="/admin/settings" element={<Setting />} />
+            <Route path="/admin/author" element={<Authors />} />
+            <Route path="/admin/ourteamsetting" element={<Ourteamsetting />} />
+            <Route path="/admin/footer-settings" element={<FooterSettings />} />
           </Route>
         </Route>
 

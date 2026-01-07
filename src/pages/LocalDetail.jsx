@@ -26,16 +26,26 @@ const fetchArticleDetail = async () => {
     const response = await fetch(`${API_BASE_URL}/news/${id}`);
     if (!response.ok) throw new Error('Article not found');
     const data = await response.json();
-    setArticle(data);
+    
+    // Extract article data
+    const articleData = data.success && data.data ? data.data : data;
+    setArticle(articleData);
 
-    // Fetch related and mixed news in parallel (only 2 API calls!)
+    // Fetch related and mixed news in parallel
     const [relatedRes, mixedRes] = await Promise.all([
       fetch(`${API_BASE_URL}/news/category/local?limit=8`),
       fetch(`${API_BASE_URL}/news/mixed-feed/${id}?limit=18`)
     ]);
 
     if (relatedRes.ok) {
-      const allArticles = await relatedRes.json();
+      const relatedData = await relatedRes.json();
+      // Extract array from response
+      const allArticles = relatedData.success && Array.isArray(relatedData.data)
+        ? relatedData.data
+        : Array.isArray(relatedData)
+          ? relatedData
+          : [];
+      
       const related = allArticles
         .filter(a => a.id !== parseInt(id))
         .slice(0, 8);
@@ -43,7 +53,13 @@ const fetchArticleDetail = async () => {
     }
 
     if (mixedRes.ok) {
-      const mixed = await mixedRes.json();
+      const mixedData = await mixedRes.json();
+      // Extract array from response
+      const mixed = mixedData.success && Array.isArray(mixedData.data)
+        ? mixedData.data
+        : Array.isArray(mixedData)
+          ? mixedData
+          : [];
       setMixedNews(mixed);
     }
 

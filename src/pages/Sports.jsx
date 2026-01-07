@@ -14,13 +14,21 @@ const Sports = () => {
     fetchSports();
   }, []);
 
-  const fetchSports = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('http://localhost:5000/api/news/category/sports');
-      if (!response.ok) throw new Error('Failed to fetch sports articles');
-      const data = await response.json();
-      setSportsList(data);
+const fetchSports = async () => {
+  try {
+    setLoading(true);
+    const response = await fetch('http://localhost:5000/api/news/category/sports');
+    if (!response.ok) throw new Error('Failed to fetch sports articles');
+    const data = await response.json();
+    
+    // Extract array from API response
+    const articles = data.success && Array.isArray(data.data) 
+      ? data.data 
+      : Array.isArray(data) 
+        ? data 
+        : [];
+    
+    setSportsList(articles);
     } catch (err) {
       setError(err.message);
       console.error('Error fetching sports:', err);

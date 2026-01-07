@@ -6,6 +6,33 @@ function Nav() {
     kathmandu: { temp: '...', loading: true },
     pokhara: { temp: '...', loading: true }
   });
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // Fetch logo from backend
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/footer/public');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch logo: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.footer && data.footer.logoUrl) {
+          setLogoUrl(data.footer.logoUrl);
+        }
+      } catch (err) {
+        console.error('Error fetching logo:', err);
+      } finally {
+        setLogoLoading(false);
+      }
+    };
+
+    fetchLogo();
+  }, []);
 
   // Update time every second
   useEffect(() => {
@@ -124,12 +151,27 @@ function Nav() {
           {/* Logo and Info Section */}
           <div className="md:text-left">
             {/* Logo */}
-            <div className="bg-gray-100 px-8 py-4 rounded-lg shadow-md inline-block">
-              <h1 className="text-4xl font-bold">
-                <span className="text-purple-600">खुलासा</span>{' '}
-                <span className="text-red-500">नेपाल</span>
-              </h1>
-              <p className="text-sm text-gray-700 mt-1">Khulasanepal.com</p>
+            <div className=" rounded-lg shadow-md inline-block">
+              {logoLoading ? (
+                <div className="h-16 w-48 flex items-center justify-center">
+                  <p className="text-gray-500">Loading...</p>
+                </div>
+              ) : logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Khulasa Nepal Logo" 
+                  className="h-16 w-auto object-contain"
+                />
+              ) : (
+                // Fallback to text logo if no image is available
+                <>
+                  <h1 className="text-4xl font-bold">
+                    <span className="text-purple-600">खुलासा</span>{' '}
+                    <span className="text-red-500">नेपाल</span>
+                  </h1>
+                  <p className="text-sm text-gray-700 mt-1">Khulasanepal.com</p>
+                </>
+              )}
             </div>
 
             {/* Date, Time & Weather - Below the Logo */}
@@ -137,10 +179,9 @@ function Nav() {
               <p className="text-base font-medium">
                 {getNepaliDate()}, {getNepaliTime()}
               </p>
-              <p className="text-l  opacity-90">
+              <p className="text-l opacity-90">
                 {getEnglishDateTime()}
               </p>
-
             </div>
           </div>
 

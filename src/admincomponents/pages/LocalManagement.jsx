@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   Image as ImageIcon, User, Eye, Plus, ChevronLeft, ChevronRight,
-  Save, X, Edit, Trash2, Search, Filter, Menu, Check, FileText
+  Save, X, Edit, Trash2, Search, Filter, Check, FileText, Loader as LoaderIcon
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 
@@ -86,17 +86,11 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
   );
 };
 
-const CATEGORIES = [
-  { value: 'news', label: 'समाचार (News)', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { value: 'local', label: 'स्थानीय (Local)', color: 'bg-green-50 text-green-700 border-green-200' },
-  { value: 'society', label: 'समाज (Society)', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-  { value: 'sports', label: 'खेलखबर (Sports)', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  { value: 'more', label: 'थप (More)', color: 'bg-pink-50 text-pink-700 border-pink-200' }
-];
-
 const UnifiedNewsManagement = () => {
   const [newsList, setNewsList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [loadingNews, setLoadingNews] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [formData, setFormData] = useState({
     newsImageFile: null,
     newsImagePreview: '',
@@ -107,7 +101,7 @@ const UnifiedNewsManagement = () => {
     content: '',
     publishedDate: '',
     journalistName: '',
-    category: 'news',
+    category: '',
     isFeatured: false
   });
   const [editingId, setEditingId] = useState(null);
@@ -129,20 +123,48 @@ const UnifiedNewsManagement = () => {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
+  // ✅ Define fetchNews OUTSIDE useEffect so it can be called from anywhere
+  const fetchNews = async () => {
+    try {
+      setLoadingNews(true);
+      const response = await axiosInstance.get('/news');
+      const articles = response.data?.data || response.data?.news || response.data || [];
+      setNewsList(articles);
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      showToast('Failed to load articles', 'error');
+      setNewsList([]);
+    } finally {
+      setLoadingNews(false);
+    }
+  };
+
+  // Fetch news articles on mount
   useEffect(() => {
-    const fetchNews = async () => {
+    fetchNews();
+  }, []);
+
+  // Fetch active categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
       try {
-        setLoading(true);
-        const response = await axiosInstance.get('/news');
-        setNewsList(response.data || []);
+        setLoadingCategories(true);
+        const response = await axiosInstance.get('/categories');
+        const activeCategories = response.data.categories || [];
+        setCategories(activeCategories);
+
+        if (activeCategories.length > 0 && !formData.category) {
+          setFormData(prev => ({ ...prev, category: activeCategories[0].value }));
+        }
       } catch (error) {
-        console.error('Error fetching news:', error);
-        showToast('Failed to load articles', 'error');
+        console.error('Error fetching categories:', error);
+        showToast('Failed to load categories', 'error');
+        setCategories([]);
       } finally {
-        setLoading(false);
+        setLoadingCategories(false);
       }
     };
-    fetchNews();
+    fetchCategories();
   }, []);
 
   const handleInputChange = (e) => {
@@ -167,71 +189,69 @@ const UnifiedNewsManagement = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.category) {
+      showToast('Please select a category', 'error');
+      return;
+    }
+
     if (!formData.title.trim()) {
       showToast('Please enter a title', 'error');
       return;
     }
-    if (!formData.journalistName.trim()) {
-      showToast('Please enter journalist name', 'error');
-      return;
-    }
 
-    setLoading(true);
+    setLoadingNews(true);
+
     try {
       const formDataToSend = new FormData();
 
       if (formData.newsImageFile) {
         formDataToSend.append('image', formData.newsImageFile);
-      } else if (editingId && formData.newsImagePreview) {
-        const imagePath = formData.newsImagePreview.replace('http://localhost:5000', '');
-        formDataToSend.append('existingImagePath', imagePath);
-      } else if (!editingId) {
-        showToast('Please upload a cover image', 'error');
-        setLoading(false);
-        return;
       }
-
       if (formData.journalistImageFile) {
         formDataToSend.append('journalistImage', formData.journalistImageFile);
-      } else if (editingId && formData.journalistImagePreview) {
-        const journalistImagePath = formData.journalistImagePreview.replace('http://localhost:5000', '');
-        formDataToSend.append('existingJournalistImagePath', journalistImagePath);
-      } else if (formData.journalistImagePreview === '') {
-        formDataToSend.append('removeJournalistImage', 'true');
       }
 
       formDataToSend.append('title', formData.title);
       formDataToSend.append('subtitle', formData.subtitle || '');
       formDataToSend.append('paragraph', formData.content || '');
-      formDataToSend.append('journalistName', formData.journalistName);
-      formDataToSend.append('category', formData.category);
+      formDataToSend.append('journalistName', formData.journalistName || '');
       formDataToSend.append('publishedDate', formData.publishedDate || new Date().toISOString());
+      formDataToSend.append('category', formData.category);
       formDataToSend.append('isFeatured', formData.isFeatured);
-      formDataToSend.append('status', 'published');
 
       let response;
+      
       if (editingId) {
         response = await axiosInstance.put(`/news/${editingId}`, formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        setNewsList(prev => prev.map(item => item.id === editingId ? response.data.news : item));
-        showToast('Article updated successfully!');
+        console.log('✅ Article updated:', response.data);
+        showToast('Article updated successfully!', 'success');
       } else {
         response = await axiosInstance.post('/news', formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        setNewsList(prev => [response.data.news, ...prev]);
-        showToast('Article created successfully!');
+        console.log('✅ Article created:', response.data);
+        showToast('Article published successfully!', 'success');
       }
 
+      // ✅ Refresh the list after successful save
+      await fetchNews();
+      
       resetForm();
       setShowForm(false);
+      setEditingId(null);
+
     } catch (error) {
-      console.error('Error saving article:', error);
-      showToast(error.response?.data?.message || 'Failed to save article', 'error');
+      console.error('❌ Error:', error);
+      console.log('❌ Error response:', error.response?.data);
+      const message = error.response?.data?.message || 'Failed to save article';
+      showToast(message, 'error');
     } finally {
-      setLoading(false);
+      setLoadingNews(false);
     }
   };
 
@@ -247,7 +267,7 @@ const UnifiedNewsManagement = () => {
       content: news.paragraph || '',
       publishedDate: news.publishedDate ? new Date(news.publishedDate).toISOString().slice(0, 16) : '',
       journalistName: news.journalistName || '',
-      category: news.category || 'news',
+      category: news.category || categories[0]?.value || '',
       isFeatured: news.isFeatured || false
     });
     setShowForm(true);
@@ -270,7 +290,7 @@ const UnifiedNewsManagement = () => {
   const confirmDelete = async () => {
     try {
       await Promise.all(selectedItems.map(id => axiosInstance.delete(`/news/${id}`)));
-      setNewsList(prev => prev.filter(item => !selectedItems.includes(item.id)));
+      await fetchNews(); // ✅ Refresh list after deletion
       showToast(`${selectedItems.length} article(s) deleted successfully!`);
     } catch (error) {
       showToast('Failed to delete articles', 'error');
@@ -303,7 +323,7 @@ const UnifiedNewsManagement = () => {
       content: '',
       publishedDate: '',
       journalistName: '',
-      category: 'news',
+      category: categories[0]?.value || '',
       isFeatured: false
     });
     if (newsFileRef.current) newsFileRef.current.value = '';
@@ -321,17 +341,31 @@ const UnifiedNewsManagement = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentNews = filteredNews.slice(startIndex, startIndex + itemsPerPage);
 
-  const getCategoryStyle = (category) => {
-    const cat = CATEGORIES.find(c => c.value === category);
-    return cat ? cat.color : 'bg-gray-50 text-gray-700 border-gray-200';
+  const getCategoryStyle = (categoryValue) => {
+    const cat = categories.find(c => c.value === categoryValue);
+    const colorMap = {
+      blue: 'bg-blue-50 text-blue-700 border-blue-200',
+      green: 'bg-green-50 text-green-700 border-green-200',
+      purple: 'bg-purple-50 text-purple-700 border-purple-200',
+      orange: 'bg-orange-50 text-orange-700 border-orange-200',
+      pink: 'bg-pink-50 text-pink-700 border-pink-200',
+      red: 'bg-red-50 text-red-700 border-red-200',
+      yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      teal: 'bg-teal-50 text-teal-700 border-teal-200',
+      indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      cyan: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+      gray: 'bg-gray-50 text-gray-700 border-gray-200',
+      slate: 'bg-slate-50 text-slate-700 border-slate-200',
+    };
+    return colorMap[cat?.color] || 'bg-gray-50 text-gray-700 border-gray-200';
   };
 
-  const getCategoryLabel = (category) => {
-    const cat = CATEGORIES.find(c => c.value === category);
-    return cat ? cat.label : category;
+  const getCategoryLabel = (categoryValue) => {
+    const cat = categories.find(c => c.value === categoryValue);
+    return cat ? cat.label : categoryValue || 'Uncategorized';
   };
 
-  if (loading && newsList.length === 0) {
+  if (loadingNews && newsList.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
@@ -369,29 +403,7 @@ const UnifiedNewsManagement = () => {
         </div>
       )}
 
-      <div className="bg-white border-b shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">News Management</h1>
-              <p className="text-sm text-gray-600">Manage all news articles and content</p>
-            </div>
-            <button
-              onClick={() => { resetForm(); setShowForm(!showForm); setViewingNews(null); }}
-              className={`px-4 py-2 rounded-md font-medium flex items-center justify-center gap-2 transition-colors ${
-                showForm ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {showForm ? <X size={18} /> : <Plus size={18} />}
-              <span className="hidden sm:inline">{showForm ? 'Cancel' : 'New Article'}</span>
-              <span className="sm:hidden">{showForm ? 'Cancel' : 'New'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {/* Article Preview */}
         {viewingNews && (
           <div className="bg-white rounded-lg shadow-sm border mb-6">
             <div className="border-b px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -451,7 +463,6 @@ const UnifiedNewsManagement = () => {
           </div>
         )}
 
-        {/* Create/Edit Form */}
         {showForm && (
           <div className="bg-white rounded-lg shadow-sm border mb-6">
             <div className="border-b px-4 sm:px-6 py-4">
@@ -504,12 +515,33 @@ const UnifiedNewsManagement = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-                      <select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                        {CATEGORIES.map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
-                      </select>
+                      {loadingCategories ? (
+                        <div className="px-3 py-2 bg-gray-100 rounded-md text-gray-500 flex items-center gap-2">
+                          <LoaderIcon className="animate-spin" size={16} />
+                          Loading...
+                        </div>
+                      ) : categories.length === 0 ? (
+                        <div className="px-3 py-2 bg-red-100 text-red-700 rounded-md">
+                          No categories available
+                        </div>
+                      ) : (
+                        <select
+                          name="category"
+                          value={formData.category}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                          required
+                        >
+                          {categories.map(cat => (
+                            <option key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Author Name *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Author Name</label>
                       <input type="text" name="journalistName" value={formData.journalistName} onChange={handleInputChange} placeholder="Author name..." className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                     </div>
                     <div>
@@ -518,13 +550,14 @@ const UnifiedNewsManagement = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Article Content <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Article Content</label>
                     <RichTextEditor value={formData.content} onChange={handleContentChange} placeholder="Write your article content here..." />
                   </div>
+
                   <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-                    <button onClick={handleSubmit} disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-md font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onClick={handleSubmit} disabled={loadingNews} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-md font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                       <Save size={18} />
-                      {loading ? 'Saving...' : editingId ? 'Update Article' : 'Publish Article'}
+                      {loadingNews ? 'Saving...' : editingId ? 'Update Article' : 'Publish Article'}
                     </button>
                     <button onClick={() => { resetForm(); setShowForm(false); }} className="px-6 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2.5 rounded-md font-medium">
                       Cancel
@@ -536,7 +569,6 @@ const UnifiedNewsManagement = () => {
           </div>
         )}
 
-        {/* List View */}
         {!showForm && !viewingNews && (
           <>
             <div className="bg-white rounded-lg shadow-sm border mb-4">
@@ -552,7 +584,7 @@ const UnifiedNewsManagement = () => {
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Filter size={18} className="text-gray-400" />
                       <select
@@ -561,17 +593,28 @@ const UnifiedNewsManagement = () => {
                         className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                       >
                         <option value="all">All Categories</option>
-                        {CATEGORIES.map(cat => (
-                          <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        {categories.map(cat => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
                         ))}
                       </select>
                     </div>
-                    {selectedItems.length > 0 && (
-                      <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium flex items-center gap-2 text-sm">
-                        <Trash2 size={18} />
-                        Delete ({selectedItems.length})
+                    <div className="flex gap-3">
+                      {selectedItems.length > 0 && (
+                        <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium flex items-center gap-2 text-sm">
+                          <Trash2 size={18} />
+                          Delete ({selectedItems.length})
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { resetForm(); setShowForm(true); }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium flex items-center gap-2 text-sm"
+                      >
+                        <Plus size={18} />
+                        New Article
                       </button>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -579,7 +622,6 @@ const UnifiedNewsManagement = () => {
 
             {currentNews.length > 0 ? (
               <>
-                {/* Desktop Table */}
                 <div className="hidden lg:block bg-white rounded-lg shadow-sm border overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b">
@@ -654,7 +696,6 @@ const UnifiedNewsManagement = () => {
                   </table>
                 </div>
 
-                {/* Mobile Cards */}
                 <div className="lg:hidden space-y-4">
                   {currentNews.map((news) => (
                     <div key={news.id} className={`bg-white rounded-lg shadow-sm border p-4 ${selectedItems.includes(news.id) ? 'ring-2 ring-blue-500' : ''}`}>

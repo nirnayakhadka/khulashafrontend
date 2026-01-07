@@ -12,7 +12,8 @@ const AdminNav = () => {
   const user = { email: 'admin@khulasha.com' };
 
   const handleLogout = useCallback(() => {
-    alert('Logging out...');
+    localStorage.removeItem('token');
+    localStorage.removeItem('admin');
     navigate('/login');
   }, [navigate]);
 
@@ -27,36 +28,63 @@ const AdminNav = () => {
     navigate(path);
     setIsMobileMenuOpen(false);
   }, [navigate]);
-
-  const menuItems = useMemo(
-    () => [
-      {
-        name: 'Dashboard',
-        path: '/admin/dashboard',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-        ),
-        subItems: [],
-      },
-      {
-        name: 'Local',
-        path: '/admin/local',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        ),
-        subItems: [
-          { name: 'View All', path: '/admin/local' },
-          { name: 'Add New', path: '/admin/local/add' },
-        ],
-      },
-    ],
-    []
-  );
+const menuItems = useMemo(
+  () => [
+    {
+      name: 'Dashboard',
+      path: '/admin/dashboard',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      ),
+      subItems: [],
+    },
+    {
+      name: 'Local',
+      path: '/admin/local',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+      subItems: [
+        { name: 'View All', path: '/admin/local' },
+        { name: 'Add New', path: '/admin/local/add' },
+      ],
+    },
+    {
+      name: 'Category',
+      path: '/admin/category',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+        </svg>
+      ),
+      subItems: [
+        { name: 'View All', path: '/admin/category' },
+      ],
+    },
+    {
+      name: 'Settings',
+      path: '/admin/settings', // base path for active detection
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+      subItems: [
+        { name: 'General Settings', path: '/admin/settings' },
+        { name: 'Author', path: '/admin/author' },
+        { name: 'Our Team', path: '/admin/ourteamsetting' },
+        { name: 'Footer Settings', path: '/admin/footer-settings' },
+      ],
+    },
+  ],
+  []
+);
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
@@ -66,7 +94,7 @@ const AdminNav = () => {
       const isExpanded = expandedMenus[item.name];
 
       return (
-        <div key={item.path} className="relative">
+        <div key={item.name} className="relative">
           <button
             onClick={() => (hasSubItems ? toggleMenu(item.name) : handleNavigation(item.path))}
             className={`w-full group flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
@@ -124,6 +152,7 @@ const AdminNav = () => {
     [expandedMenus, isCollapsed, location.pathname, toggleMenu, handleNavigation, isActive]
   );
 
+  // Rest of the component remains unchanged...
   return (
     <>
       {/* Desktop Sidebar */}
@@ -133,12 +162,26 @@ const AdminNav = () => {
         }`}
       >
         {/* Header */}
-        <div className="flex items-center h-16 px-4 border-b border-gray-800">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
           {!isCollapsed && (
             <span className="text-xl font-bold text-white">
               Khulasha Panel
             </span>
           )}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+            title={isCollapsed ? 'Expand' : 'Collapse'}
+          >
+            <svg
+              className={`w-5 h-5 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -170,8 +213,8 @@ const AdminNav = () => {
               </button>
             </>
           ) : (
-            <div className="flex flex-col items-center">
-              <div className="w-10 h-10 mb-3 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 mb-2 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">
                 {user?.email?.[0]?.toUpperCase() || 'A'}
               </div>
               <button

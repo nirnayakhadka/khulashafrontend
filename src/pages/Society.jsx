@@ -29,19 +29,26 @@ function Society() {
     setSlidesToShow(window.innerWidth < 768 ? 1 : 3);
   };
 
-const fetchSocietyData = async () => {
-  try {
-    setLoading(true);
-    const response = await axiosInstance.get('/news/category/society');
-    setSocietyData(response.data);
-    setError(null);
-  } catch (err) {
-    setError('Failed to load society articles');
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchSocietyData = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/news/category/society');
+      
+      const articles = response.data.success && Array.isArray(response.data.data) 
+        ? response.data.data 
+        : Array.isArray(response.data) 
+          ? response.data 
+          : [];
+      
+      setSocietyData(articles);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load society articles');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80';
@@ -49,12 +56,14 @@ const fetchSocietyData = async () => {
   };
 
   const prevSlide = () => {
-    const maxIndex = Math.max(0, societyData.length - slidesToShow);
+    const carouselData = societyData.slice(13);
+    const maxIndex = Math.max(0, carouselData.length - slidesToShow);
     setCurrentIndex((prev) => (prev === 0 ? maxIndex : prev - 1));
   };
 
   const nextSlide = () => {
-    const maxIndex = Math.max(0, societyData.length - slidesToShow);
+    const carouselData = societyData.slice(13);
+    const maxIndex = Math.max(0, carouselData.length - slidesToShow);
     setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
   };
 
@@ -89,174 +98,119 @@ const fetchSocietyData = async () => {
     );
   }
 
-  const featuredStories = societyData.slice(0, 3);
-  const smallCards = societyData.slice(3, 8);
-  const politicsStories = societyData.slice(8, 13);
-  const carouselImages = societyData.length > 0 ? societyData : [];
+  // Divide data into sections without repeating
+  const heroStory = societyData.length > 0 ? societyData[0] : null;
+  const featuredStories = societyData.slice(1, 4); // Articles 1-3
+  const smallCards = societyData.slice(4, 9); // Articles 4-8
+  const politicsStories = societyData.slice(9, 14); // Articles 9-13
+  const carouselImages = societyData.slice(14); // Articles 14+
 
   return (
-  <div className="bg-white min-h-screen">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 pb-12">
+    <div className="bg-white min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 pb-12">
 
-      {/* Hero Section */}
-      {societyData.length > 0 && (
-        <div className="mb-12 md:mb-20">
-          <div className="w-full">
-            {/* Make entire section clickable */}
-            <div 
-              onClick={() => handleCardClick(societyData[0].id)}
-              className="cursor-pointer"
-            >
-              {/* Title and Meta Above Photo - Centered */}
-              <div className="mb-4 md:mb-6 text-center max-w-4xl mx-auto">
-                {/* Title */}
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-3 text-gray-900 hover:text-blue-900 transition-colors">
-                  {stripHtml(societyData[0].title)}
-                </h2>
-                
-                {/* Meta Information */}
-                <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-gray-600">
-                  {societyData[0].journalistName && (
-                    <>
+        {/* Hero Section */}
+        {heroStory && (
+          <div className="mb-12 md:mb-20">
+            <div className="w-full">
+              <div 
+                onClick={() => handleCardClick(heroStory.id)}
+                className="cursor-pointer"
+              >
+                <div className="mb-4 md:mb-6 text-center max-w-4xl mx-auto">
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-3 text-gray-900 hover:text-blue-900 transition-colors">
+                    {stripHtml(heroStory.title)}
+                  </h2>
+                  
+                  <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-gray-600">
+                    {heroStory.journalistName && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          {heroStory.journalistImage && (
+                            <img 
+                              src={getImageUrl(heroStory.journalistImage)} 
+                              alt={heroStory.journalistName}
+                              className="w-10 h-10 rounded-full border-2 border-gray-300 object-cover"
+                            />
+                          )}
+                          <span className="text-sm md:text-base">{heroStory.journalistName}</span>
+                        </div>
+                        <span className="text-gray-400">•</span>
+                      </>
+                    )}
+                    {heroStory.publishedDate && (
                       <div className="flex items-center gap-2">
-                        {societyData[0].journalistImage && (
-                          <img 
-                            src={getImageUrl(societyData[0].journalistImage)} 
-                            alt={societyData[0].journalistName}
-                            className="w-10 h-10 rounded-full border-2 border-gray-300 object-cover"
-                          />
-                        )}
-                        <span className="text-sm md:text-base">{societyData[0].journalistName}</span>
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
+                        </svg>
+                        <span className="text-sm md:text-base">
+                          {new Date(heroStory.publishedDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </span>
                       </div>
-                      <span className="text-gray-400">•</span>
-                    </>
-                  )}
-                  {societyData[0].publishedDate && (
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
-                      </svg>
-                      <span className="text-sm md:text-base">
-                        {new Date(societyData[0].publishedDate).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Photo with Category Tag Inside */}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl h-[400px] md:h-[500px] lg:h-[550px] group mb-4 md:mb-6">
-                <img 
-                  src={getImageUrl(societyData[0].image)} 
-                  alt={stripHtml(societyData[0].title)} 
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                />
-                
-                {/* Category Badge */}
-                <div className="absolute top-4 left-4 md:top-6 md:left-6">
-                </div>
-              </div>
-              
-              {/* Subtitle and Content Below Photo */}
-              <div className="space-y-3">
-                {/* Subtitle */}
-                {societyData[0].subtitle && (
-                  <h3 className="text-2xl font-semibold text-gray-800">
-                    {stripHtml(societyData[0].subtitle)}
-                  </h3>
-                )}
-                
-                {/* News Highlight - First line of content */}
-                {societyData[0].paragraph && (
-                  <p className="text-xl text-gray-700 line-clamp-2 leading-relaxed">
-                    {stripHtml(societyData[0].paragraph).split('\n')[0]}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-        {/* Top Featured Stories */}
-        {featuredStories.length > 0 && (
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-16">
-  {featuredStories.map(story => (
-    <div
-      key={story.id}
-      onClick={() => handleCardClick(story.id)}
-      className="group cursor-pointer transition-all duration-300 hover:shadow-xl rounded-lg"
-    >
-      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 leading-tight transition-colors group-hover:text-blue-600 line-clamp-1">
-        {stripHtml(story.title)}
-      </h3>
-      <div className="relative overflow-hidden rounded-lg mb-3">
-        <img
-          src={getImageUrl(story.image)}
-          alt={stripHtml(story.title)}
-          className="w-full h-56 md:h-72 object-cover transition-transform duration-500 group-hover:scale-110"
-        />
-      </div>
-      <p className="text-xl text-gray-600 line-clamp-1">
-        {stripHtml(story.subtitle || story.paragraph?.substring(0, 150) || '')}
-      </p>
-    </div>
-  ))}
-</div>
-        )}
-
-        {/* Additional Cards Section */}
-        {societyData.length > 13 && (
-          <div className="mb-12 md:mb-16">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 md:mb-6 pb-3 border-b border-gray-300">
-              MORE STORIES
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {societyData.slice(13).map(story => (
-                <div
-                  key={story.id}
-                  onClick={() => handleCardClick(story.id)}
-                  className="group cursor-pointer bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 active:scale-95"
-                >
-                  <div className="overflow-hidden">
-                    <img
-                      src={getImageUrl(story.image)}
-                      alt={stripHtml(story.title)}
-                      className="w-full h-44 md:h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <span className="inline-block px-3 py-1 text-xs font-semibold text-blue-600 bg-blue-50 rounded-full mb-2">
-                      SOCIETY
-                    </span>
-                    <h4 className="text-base md:text-lg font-bold text-gray-900 mb-2 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                      {stripHtml(story.title)}
-                    </h4>
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                      {stripHtml(story.subtitle || story.paragraph?.substring(0, 120) + '...' || '')}
-                    </p>
-                    {story.publishedDate && (
-                      <p className="text-xs text-gray-400">
-                        {new Date(story.publishedDate).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </p>
                     )}
                   </div>
                 </div>
-              ))}
+                
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl h-[400px] md:h-[500px] lg:h-[550px] group mb-4 md:mb-6">
+                  <img 
+                    src={getImageUrl(heroStory.image)} 
+                    alt={stripHtml(heroStory.title)} 
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  {heroStory.subtitle && (
+                    <h3 className="text-2xl font-semibold text-gray-800">
+                      {stripHtml(heroStory.subtitle)}
+                    </h3>
+                  )}
+                  
+                  {heroStory.paragraph && (
+                    <p className="text-xl text-gray-700 line-clamp-2 leading-relaxed">
+                      {stripHtml(heroStory.paragraph).split('\n')[0]}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Top Featured Stories */}
+        {featuredStories.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-16">
+            {featuredStories.map(story => (
+              <div
+                key={story.id}
+                onClick={() => handleCardClick(story.id)}
+                className="group cursor-pointer transition-all duration-300 hover:shadow-xl rounded-lg"
+              >
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 leading-tight transition-colors group-hover:text-blue-600 line-clamp-1">
+                  {stripHtml(story.title)}
+                </h3>
+                <div className="relative overflow-hidden rounded-lg mb-3">
+                  <img
+                    src={getImageUrl(story.image)}
+                    alt={stripHtml(story.title)}
+                    className="w-full h-56 md:h-72 object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                </div>
+                <p className="text-xl text-gray-600 line-clamp-1">
+                  {stripHtml(story.subtitle || story.paragraph?.substring(0, 150) || '')}
+                </p>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Diverse Small Cards */}
-{smallCards.length > 0 && (
+        {smallCards.length > 0 && (
           <div className="mb-12 md:mb-16">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 md:mb-6 pb-3 border-b border-gray-300">
               DIVERSE
@@ -379,21 +333,17 @@ const fetchSocietyData = async () => {
                           className="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110"
                         />
 
-                        {/* Title Overlay - Always Visible */}
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 md:p-8 pt-16 md:pt-20">
                           <h3 className="text-xl md:text-3xl font-bold text-white leading-tight drop-shadow-lg line-clamp-2 hover:text-blue-900">
                             {stripHtml(image.title)}
                           </h3>
                         </div>
-
-
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Navigation Arrows */}
               {carouselImages.length > slidesToShow && (
                 <>
                   <button
@@ -418,7 +368,6 @@ const fetchSocietyData = async () => {
                 </>
               )}
 
-              {/* Dots Indicator */}
               {carouselImages.length > slidesToShow && (
                 <div className="flex justify-center mt-6 md:mt-10 space-x-2 md:space-x-3">
                   {Array.from({ length: Math.max(0, carouselImages.length - (slidesToShow - 1)) }).map((_, idx) => (

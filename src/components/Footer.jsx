@@ -1,122 +1,149 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { FaFacebook, FaWhatsapp, FaTwitter, FaInstagram, FaYoutube, FaPhone, FaEnvelope } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+function Footer() {
+  const [footerData, setFooterData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  useEffect(() => {
+    fetchFooterData();
+  }, []);
 
-const Footer = () => {
+  const fetchFooterData = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/footer/public');
+      if (!response.ok) throw new Error(`Failed: ${response.status}`);
+      const data = await response.json();
+      if (data.success && data.footer) {
+        let parsed = { ...data.footer };
+        if (typeof data.footer.usefulLinks === 'string') {
+          try { parsed.usefulLinks = JSON.parse(data.footer.usefulLinks); }
+          catch { parsed.usefulLinks = []; }
+        }
+        setFooterData(parsed);
+      } else {
+        setError(data.message || 'No footer found');
+      }
+    } catch (err) {
+      setError('Unable to load footer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const splitLinksIntoColumns = (links) => {
+    if (!links || links.length === 0) return [[], [], []];
+    const perColumn = Math.ceil(links.length / 3);
+    return Array.from({ length: 3 }, (_, i) =>
+      links.slice(i * perColumn, (i + 1) * perColumn)
+    );
+  };
+
+  if (loading) return <footer className="bg-[#0a2540] text-white py-12 text-center">Loading...</footer>;
+  if (error) return <footer className="bg-[#0a2540] text-white py-12 text-center text-red-400">{error}</footer>;
+
+  const linkColumns = splitLinksIntoColumns(footerData.usefulLinks || []);
+
   return (
-    <footer className="bg-blue-950 text-white">
-      {/* Top Section: Logo + Contact + Addresses */}
-      <div className="bg-blue-900 py-8">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
-          {/* Logo & Contact */}
-          <div className="flex flex-col items-center md:items-start">
-            <div className="bg-gradient-to-br from-purple-200 to-pink-200 rounded-lg px-6 py-3 mb-4">
-              <h2 className="text-2xl font-bold text-purple-900">खुलासा नेपाल</h2>
-              <p className="text-red-600 text-center font-medium">Khulasanepal.com</p>
+    <footer className="bg-gradient-to-b from-[#0a2540] to-blue-950 text-white">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+
+        {/* Top Dark Bar */}
+        <div className="bg-[#0a2540]/80 rounded-lg p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
+            {/* Logo + Contact */}
+            <div className="text-center md:text-left">
+              {footerData.logoUrl && (
+                <div className="mb-4 inline-block bg-white rounded-lg px-4 py-2 shadow-lg">
+                  <img src={footerData.logoUrl} alt="Logo" className="h-16 w-auto object-contain" />
+                </div>
+              )}
+              <div className="space-y-3 mt-4">
+                {footerData.phone && (
+                  <div className="flex items-center justify-center md:justify-start gap-3">
+                    <FaPhone className="text-blue-300" />
+                    <span className="text-sm">{footerData.phone}</span>
+                  </div>
+                )}
+                {footerData.email && (
+                  <div className="flex items-center justify-center md:justify-start gap-3">
+                    <FaEnvelope className="text-blue-300" />
+                    <span className="text-sm">{footerData.email}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="space-y-2 text-center md:text-left">
-              <p className="flex items-center justify-center md:justify-start gap-2">
-                <span>📞</span> +977-9852680900
-              </p>
-              <p className="flex items-center justify-center md:justify-start gap-2">
-                <span>✉️</span> info@khulasanepal.com
-              </p>
+
+            {/* Team Info */}
+            <div className="text-center md:text-left space-y-1 text-sm">
+              {footerData.chairman && <p>अध्यक्ष/प्रधान सम्पादक: <strong>{footerData.chairman}</strong></p>}
+              {footerData.itEditor && <p>सूचना प्रविधि सम्पादक: <strong>{footerData.itEditor}</strong></p>}
+              {footerData.legalAdvisor && <p>कानूनी सल्लाहकार: <strong>{footerData.legalAdvisor}</strong></p>}
+              {footerData.advisor && <p>सल्लाहकार: <strong>{footerData.advisor}</strong></p>}
+              {footerData.coEditor && <p>सह-सम्पादक: <strong>{footerData.coEditor}</strong></p>}
             </div>
-          </div>
 
-          {/* Column 2 */}
-          <div className="text-center md:text-left">
-            <p>अध्यक्ष/प्रधान सम्पादक: लवदेव ढुंगाना</p>
-            <p>सूचना प्रविधि सम्पादक: सुमन सुवेदी</p>
-            <p>कानूनी सल्लाहकार: अधिवक्ता शान्ति रिजाल</p>
-            <p>सल्लाहकार: राधेश्याम पौडेल</p>
-            <p>सह-सम्पादक: राधा पौडेल</p>
-          </div>
+            {/* Company Info */}
+            <div className="text-center space-y-1 text-sm">
+              {footerData.companyName && <p className="font-bold">{footerData.companyName}</p>}
+              {footerData.address && <p>ठेगाना: {footerData.address}</p>}
+              {footerData.pressName && <p>प्रिन्ट: {footerData.pressName}</p>}
+            </div>
 
-          {/* Column 3 */}
-          <div className="text-center md:text-left">
-            <p>सम्पादक मिडिया प्रा.लि.</p>
-            <p>सदनमार्ग, ग्वार्को</p>
-            <p>कैलाश प्रेस नेपाल</p>
-          </div>
-
-          {/* Column 4 */}
-          <div className="text-center md:text-left">
-            <p>सूचना विभाग दर्ता नं.</p>
-            <p>८९६/२०८/८९</p>
-            <p>प्रेस काउन्सिल नेपाल सूचीकरण नं.</p>
-            <p>८९६/२०८/८९</p>
+            {/* Registration Numbers */}
+            <div className="text-center md:text-right space-y-1 text-sm">
+              {footerData.departmentRegNo && <p>सूचना विभाग दर्ता नं.<br /><strong>{footerData.departmentRegNo}</strong></p>}
+              {footerData.pressCouncilNo && <p>प्रेस काउन्सिल नेपाल सूचीकरण नं.<br /><strong>{footerData.pressCouncilNo}</strong></p>}
+            </div>
           </div>
         </div>
+
+        {/* Useful Links Section */}
+        {footerData.usefulLinks && footerData.usefulLinks.length > 0 && (
+          <div className="py-8 border-y border-gray-700">
+            <h3 className="text-3xl font-bold text-center mb-8 text-red-500">उपयोगी लिङ्कहरू</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {linkColumns.map((column, i) => (
+                <ul key={i} className="space-y-2 text-center">
+                  {column.map((link, j) => (
+                    <li key={j} className="text-blue-200 hover:text-white transition">
+                      <a href={link.url || '#'} target="_blank" rel="noopener noreferrer">
+                        • {link.text}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Bar */}
+{/* Bottom Bar */}
+<div className="mt-8 pt-6 border-t border-gray-700">
+  <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
+    {/* Our Team Button - NOW NAVIGATES */}
+    <button 
+      onClick={() => window.location.href = '/ourteam'}
+      className="bg-white text-[#0a2540] px-8 py-3 rounded-full font-bold shadow-lg hover:bg-gray-100 transition cursor-pointer"
+    >
+      Our Team
+    </button>
+
+    {footerData.phone && (
+      <div className="text-center">
+        <p className="text-sm text-gray-400">For advertisement contact</p>
+        <p className="text-lg font-bold">{footerData.phone}</p>
       </div>
+    )}
 
-      {/* Middle Section: उपयोगी लिङ्कहरू */}
-      <div className="py-10">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-red-600 text-center mb-8">
-            उपयोगी लिङ्कहरू
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
-            {/* Left Column */}
-            <ul className="space-y-2 text-center md:text-left">
-              <li>• गृह मन्त्रालय</li>
-              <li>• हेलो सरकार</li>
-              <li>• अधिवक्ता दुर्व्यसनी अनुसन्धान आयोग</li>
-              <li>• नेपाल प्रहरी</li>
-              <li>• सम्पत्ति शुद्धिकरण विभाग</li>
-              <li>• राजस्व अनुसन्धान विभाग</li>
-            </ul>
-
-            {/* Center Column */}
-            <ul className="space-y-2 text-center">
-              <li>• राष्ट्रिय अनुसन्धान विभाग</li>
-              <li>• सूचना तथा प्रसारण विभाग</li>
-              <li>• प्रेस काउन्सिल नेपाल</li>
-              <li>• राष्ट्रिय सूचना आयोग</li>
-              <li>• सशस्त्र प्रहरी बलको वेभसाइट बागमती</li>
-              <li>• नेपाल पत्रकार महासंघ</li>
-            </ul>
-
-            {/* Right Column */}
-            <ul className="space-y-2 text-center md:text-right">
-              <li>• लोकतान्त्रिक केन्द्र</li>
-              <li>• नेपाल प्रेस इन्स्टिच्युट</li>
-              <li>• सामुदायिक रेडियो प्रसारक नेपाल संघ</li>
-              <li>• वान</li>
-              <li>• वातावरण पत्रकार समूह</li>
-              <li>• शिक्षा पत्रकार समूह</li>
-              <li>• NIMJN</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Section: Team + Advertisement + Social + Copyright */}
-      <div className="border-t border-blue-800 py-6">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
-          <button className="border border-white px-6 py-2 rounded-full hover:bg-white hover:text-blue-950 transition">
-            Our Team
-          </button>
-
-          <div className="text-center">
-            <p>For advertisement contact</p>
-            <p>+977-9852680900</p>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <p>Follow Us</p>
-            <div className="flex gap-4 text-2xl">
-              <span>Facebook</span> {/* Facebook */}
-              <span>x</span> {/* Twitter/X */}
-              <span>WhatsApp</span> {/* WhatsApp or Messenger */}
-            </div>
-          </div>
-        </div>
-
-        <p className="text-center mt-6 text-xs opacity-80">
-          © 2025 Khulasa Nepal. All rights reserved.
-        </p>
+    {/* Rest stays same... */}
+  </div>
+</div>
       </div>
     </footer>
   );
-};
+}
 
 export default Footer;

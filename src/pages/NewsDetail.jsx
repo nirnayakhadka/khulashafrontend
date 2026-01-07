@@ -24,7 +24,11 @@ const fetchNewsDetail = async () => {
     
     // Fetch news detail
     const response = await axiosInstance.get(`/news/${id}`);
-    setNews(response.data);
+    // Handle news detail response
+    const newsData = response.data.success && response.data.data 
+      ? response.data.data 
+      : response.data;
+    setNews(newsData);
     
     // Fetch related articles and mixed news in parallel
     const [allNewsResponse, mixedRes] = await Promise.all([
@@ -32,16 +36,27 @@ const fetchNewsDetail = async () => {
       axiosInstance.get(`/news/mixed-feed/${id}?limit=18`)
     ]);
     
+    // Extract array from allNewsResponse
+    const allNewsData = allNewsResponse.data.success && Array.isArray(allNewsResponse.data.data)
+      ? allNewsResponse.data.data
+      : Array.isArray(allNewsResponse.data)
+        ? allNewsResponse.data
+        : [];
+    
     // Related articles (same category only)
-    const related = allNewsResponse.data
+    const related = allNewsData
       .filter(item => item.id !== parseInt(id))
       .slice(0, 8);
-    setRelatedArticles(related);
+    setRelatedNews(related);
     
-    // Mixed news from all categories (handled by backend)
-    if (mixedRes.data) {
-      setMixedNews(mixedRes.data);
-    }
+    // Extract array from mixedRes
+    const mixedData = mixedRes.data.success && Array.isArray(mixedRes.data.data)
+      ? mixedRes.data.data
+      : Array.isArray(mixedRes.data)
+        ? mixedRes.data
+        : [];
+    
+    setMixedNews(mixedData);
     
     setError(null);
   } catch (err) {

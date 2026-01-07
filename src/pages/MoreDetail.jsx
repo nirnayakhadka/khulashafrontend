@@ -29,19 +29,33 @@ const fetchArticle = async () => {
       axiosInstance.get(`/news/mixed-feed/${id}?limit=18`)
     ]);
     
-    // Set article
-    setArticle(response.data);
+    // Extract article from response
+    const articleData = response.data.success && response.data.data 
+      ? response.data.data 
+      : response.data;
+    setArticle(articleData);
+
+    // Extract array from allArticlesResponse
+    const allArticlesData = allArticlesResponse.data.success && Array.isArray(allArticlesResponse.data.data)
+      ? allArticlesResponse.data.data
+      : Array.isArray(allArticlesResponse.data)
+        ? allArticlesResponse.data
+        : [];
 
     // Related articles (same category only)
-    const related = allArticlesResponse.data
+    const related = allArticlesData
       .filter(item => item.id !== parseInt(id))
       .slice(0, 8);
     setRelatedArticles(related);
 
-    // Mixed news from all categories (handled by backend)
-    if (mixedRes.data) {
-      setMixedNews(mixedRes.data);
-    }
+    // Extract array from mixedRes
+    const mixedData = mixedRes.data.success && Array.isArray(mixedRes.data.data)
+      ? mixedRes.data.data
+      : Array.isArray(mixedRes.data)
+        ? mixedRes.data
+        : [];
+    
+    setMixedNews(mixedData);
 
     setError(null);
   } catch (error) {
