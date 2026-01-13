@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NepaliDate from 'nepali-date-converter';
+const API_URL = import.meta.env.VITE_API_URL 
+
 const NewsHome = ({ news = [] }) => {
   const navigate = useNavigate();
   const [displayCount, setDisplayCount] = useState(12);
@@ -105,7 +107,7 @@ const getTimeAgo = (dateString) => {
               >
                 <div className="relative h-56 overflow-hidden">
                   <img
-                    src={item.image?.startsWith('http') ? item.image : `http://localhost:5000${item.image}`}
+                    src={item.image?.startsWith('http') ? item.image : `${API_URL}${item.image}`}
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />

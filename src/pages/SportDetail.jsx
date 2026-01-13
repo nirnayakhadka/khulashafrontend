@@ -4,7 +4,7 @@ import { Calendar, Clock, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin, 
 import khulashaLogo from '../assets/image/khulashalogo.png';
 import { FaTiktok } from 'react-icons/fa';
 import NepaliDate from 'nepali-date-converter';
-
+const API_URL = import.meta.env.VITE_API_URL 
 const SportDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -28,9 +28,9 @@ const fetchArticleAndSuggestions = async () => {
 
     // Fetch article detail, suggestions, and mixed news in parallel
     const [articleResponse, suggestionsResponse, mixedResponse] = await Promise.all([
-      fetch(`http://localhost:5000/api/news/${id}`),
-      fetch('http://localhost:5000/api/news/category/sports'),
-      fetch(`http://localhost:5000/api/news/mixed-feed/${id}?limit=18`)
+      fetch(`${API_URL}/api/news/${id}`),
+      fetch(`${API_URL}/api/news/category/sports`),
+      fetch(`${API_URL}/api/news/mixed-feed/${id}?limit=18`)
     ]);
 
     // Handle article
@@ -202,7 +202,7 @@ const getTimeAgo = (dateString) => {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1504711434969-e338f2762819?w=600';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
   const getCategoryColor = (category) => {

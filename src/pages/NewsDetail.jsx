@@ -5,6 +5,9 @@ import axiosInstance from '../api/axios';
 import khulashaLogo from '../assets/image/khulashalogo.png';
 import { FaTiktok } from 'react-icons/fa';
 import NepaliDate from 'nepali-date-converter';
+
+const API_URL = import.meta.env.VITE_API_URL;
+
 const NewsDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,7 +27,7 @@ const fetchNewsDetail = async () => {
     setLoading(true);
     
     // Fetch news detail
-    const response = await axiosInstance.get(`/news/${id}`);
+    const response = await axiosInstance.get(`/api/news/${id}`);
     // Handle news detail response
     const newsData = response.data.success && response.data.data 
       ? response.data.data 
@@ -33,8 +36,8 @@ const fetchNewsDetail = async () => {
     
     // Fetch related articles and mixed news in parallel
     const [allNewsResponse, mixedRes] = await Promise.all([
-      axiosInstance.get('/news/category/news'),
-      axiosInstance.get(`/news/mixed-feed/${id}?limit=18`)
+      axiosInstance.get('/api/news/category/news'),
+      axiosInstance.get(`/api/news/mixed-feed/${id}?limit=18`)
     ]);
     
     // Extract array from allNewsResponse
@@ -179,7 +182,7 @@ const handleShare = (platform) => {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-504711434969-e338f2762819?w=600';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
   const getCategoryColor = (category) => {

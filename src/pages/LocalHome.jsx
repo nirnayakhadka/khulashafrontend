@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NepaliDate from 'nepali-date-converter';
+const API_URL = import.meta.env.VITE_API_URL 
 const LocalHome = ({ news = [] }) => {
   const navigate = useNavigate();
   const [displayCount, setDisplayCount] = useState(18); // 6 featured + 6 most viewed + 6 additional
@@ -11,7 +12,7 @@ const LocalHome = ({ news = [] }) => {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=1200&q=80';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import NepaliDate from 'nepali-date-converter';
-
+const API_URL = import.meta.env.VITE_API_URL 
 // Helper function to convert numbers to Nepali
 const toNepaliNumber = (num) => {
   const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
@@ -146,7 +146,7 @@ const getTimeAgo = (dateString) => {
   const fetchSocietyData = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/news/category/society');
+      const response = await axiosInstance.get('/api/news/category/society');
       
       const articles = response.data.success && Array.isArray(response.data.data) 
         ? response.data.data 
@@ -171,7 +171,7 @@ const getTimeAgo = (dateString) => {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
   const prevSlide = () => {

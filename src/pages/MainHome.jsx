@@ -3,7 +3,7 @@ import { Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import khulashaLogo from '../assets/image/khulashalogo.png';
 import NepaliDate from 'nepali-date-converter';
-
+const API_URL = import.meta.env.VITE_API_URL 
 function MainHome({ news = [] }) {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -16,7 +16,7 @@ function MainHome({ news = [] }) {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1504711434969-e338f2762819?w=600';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
 

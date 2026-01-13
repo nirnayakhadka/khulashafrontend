@@ -8,7 +8,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { useNavigate } from 'react-router-dom';
 import NepaliDate from 'nepali-date-converter';
-
+const API_URL = import.meta.env.VITE_API_URL 
 function News() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('list');
@@ -25,7 +25,7 @@ function News() {
   const fetchNews = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/news/category/news');
+      const response = await axiosInstance.get('/api/news/category/news');
       const articles = response.data.success && Array.isArray(response.data.data) 
         ? response.data.data 
         : [];
@@ -51,7 +51,7 @@ function News() {
     id: news.id,
     title: news.title,
     excerpt: news.subtitle || stripHtml(news.paragraph)?.substring(0, 100) + '.' || '',
-    image: news.image?.startsWith('http') ? news.image : `http://localhost:5000${news.image}`
+    image: news.image?.startsWith('http') ? news.image : `${API_URL}${news.image}`
   }));
 
   // FIXED: Skip first 4 items for trending/popular to avoid duplicates
@@ -266,7 +266,7 @@ const getTimeAgo = (dateString) => {
                       : 'w-full h-48 sm:h-56 md:h-64'
                   }`}>
                     <img
-                      src={post.image?.startsWith('http') ? post.image : `http://localhost:5000${post.image}`}
+                      src={post.image?.startsWith('http') ? post.image : `${API_URL}${post.image}`}
                       alt={post.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -385,7 +385,7 @@ const getTimeAgo = (dateString) => {
                       onClick={() => navigate(`/news/${post.id}`)}
                     >
                       <img
-                        src={post.image?.startsWith('http') ? post.image : `http://localhost:5000${post.image}`}
+                        src={post.image?.startsWith('http') ? post.image : `${API_URL}${post.image}`}
                         alt={post.title}
                         className="w-20 h-16 sm:w-24 sm:h-20 object-cover rounded-lg sm:rounded-xl flex-shrink-0"
                       />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import fallbackLogo from '../assets/image/khulashafallbacklogo.png';
-
+const API_URL = import.meta.env.VITE_API_URL 
 function Nav() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weatherData, setWeatherData] = useState({
@@ -14,7 +14,7 @@ function Nav() {
   useEffect(() => {
     const fetchLogo = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/footer/public');
+        const response = await fetch(`${API_URL}/api/footer/public`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch logo: ${response.status}`);

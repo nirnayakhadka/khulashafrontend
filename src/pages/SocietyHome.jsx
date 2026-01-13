@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NepaliDate from 'nepali-date-converter';
+const API_URL = import.meta.env.VITE_API_URL 
 const SocietyHome = ({ news = [] }) => {
   const navigate = useNavigate();
   const [displayCount, setDisplayCount] = useState(7);
@@ -11,7 +12,7 @@ const SocietyHome = ({ news = [] }) => {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
 

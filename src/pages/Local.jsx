@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import NepaliDate from 'nepali-date-converter';
-const API_BASE_URL = 'http://localhost:5000/api/news/category/local';
+ const API_URL = import.meta.env.VITE_API_URL 
+const API_BASE_URL = `${API_URL}/api/news/category/local`;
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=1200&q=80';
 
 // Utility Functions
@@ -65,7 +66,7 @@ const getTimeAgo = (dateString) => {
 
 
 const getImageUrl = (imagePath) => {
-  return imagePath ? `http://localhost:5000${imagePath}` : FALLBACK_IMAGE;
+  return imagePath ? `${API_URL}${imagePath}` : FALLBACK_IMAGE;
 };
 
 // Loading Component

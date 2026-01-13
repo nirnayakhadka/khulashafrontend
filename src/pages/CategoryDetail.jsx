@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, Eye, ArrowLeft, Share2 } from 'lucide-react';
 import axiosInstance from '../api/axios';
-
+const API_URL = import.meta.env.VITE_API_URL 
 function CategoryDetail() {
   const { category, id } = useParams();
   const navigate = useNavigate();
@@ -106,12 +106,12 @@ function CategoryDetail() {
 
   const imageUrl = article.image?.startsWith('http') 
     ? article.image 
-    : `http://localhost:5000${article.image}`;
+    : `${API_URL}${article.image}`;
     
   const journalistImageUrl = article.journalistImage?.startsWith('http')
     ? article.journalistImage
     : article.journalistImage 
-      ? `http://localhost:5000${article.journalistImage}`
+      ? `${API_URL}${article.journalistImage}`
       : null;
 
   return (
@@ -236,7 +236,7 @@ function CategoryDetail() {
                 >
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src={related.image?.startsWith('http') ? related.image : `http://localhost:5000${related.image}`}
+                      src={related.image?.startsWith('http') ? related.image : `${API_URL}${related.image}`}
                       alt={related.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />

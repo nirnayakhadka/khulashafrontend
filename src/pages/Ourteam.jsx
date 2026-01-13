@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Mail, Phone, Loader, AlertCircle } from 'lucide-react';
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from 'react-icons/fa';
-
+const API_URL = import.meta.env.VITE_API_URL 
 function Ourteam() {
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,7 @@ function Ourteam() {
   const fetchTeamMembers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/team/public');
+      const response = await fetch(`${API_URL}/api/team/public`);
       if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
       setTeamMembers(data.team || []);
@@ -105,7 +105,7 @@ function Ourteam() {
                     <div className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-blue-100 ">
                       {member.imageUrl ? (
                         <img
-                          src={`http://localhost:5000${member.imageUrl}`}
+                          src={`${API_URL}${member.imageUrl}`}
                           alt={member.name}
                           className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                         />

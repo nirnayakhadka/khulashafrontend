@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Play, Clock, Calendar, User, ArrowRight, ChevronLeft, ChevronRight, TrendingUp, Flame } from 'lucide-react';
 import khulashaLogo from '../assets/image/khulashalogo.png';
 import NepaliDate from 'nepali-date-converter';
+const API_URL = import.meta.env.VITE_API_URL 
 const Sports = () => {
   const navigate = useNavigate();
   const [sportsList, setSportsList] = useState([]);
@@ -18,7 +19,7 @@ const Sports = () => {
   const fetchSports = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/news/category/sports');
+      const response = await fetch(`${API_URL}/api/news/category/sports`);
       if (!response.ok) throw new Error('Failed to fetch sports articles');
       const data = await response.json();
       
@@ -134,7 +135,7 @@ const getTimeAgo = (dateString) => {
                       <div className="flex items-center gap-2">
                         <img
                           src={sportsList[0].journalistImage 
-                            ? `http://localhost:5000${sportsList[0].journalistImage}`
+                            ? `${API_URL}${sportsList[0].journalistImage}`
                             : khulashaLogo
                           }
                           alt={sportsList[0].journalistName || "Khulasha Nepal"}
@@ -173,7 +174,7 @@ const getTimeAgo = (dateString) => {
                 <div
                   className="absolute inset-0 bg-cover bg-center bg-no-repeat cursor-pointer"
                   style={{
-                    backgroundImage: `url('http://localhost:5000${sportsList[0].image}')`,
+                    backgroundImage: `url('${API_URL}${sportsList[0].image}')`,
                   }}
                   onClick={() => navigate(`/sports/${sportsList[0].id}`)}
                 />
@@ -249,7 +250,7 @@ const getTimeAgo = (dateString) => {
                 >
                   {currentSports[1].image && (
                     <img
-                      src={`http://localhost:5000${currentSports[1].image}`}
+                      src={`${API_URL}${currentSports[1].image}`}
                       alt={currentSports[1].title}
                       className="w-full h-full object-cover"
                     />
@@ -264,7 +265,7 @@ const getTimeAgo = (dateString) => {
                         <div className="flex items-center gap-2">
                           <img
                             src={currentSports[1].journalistImage 
-                              ? `http://localhost:5000${currentSports[1].journalistImage}`
+                              ? `${API_URL}${currentSports[1].journalistImage}`
                               : khulashaLogo
                             }
                             alt={currentSports[1].journalistName || "Khulasha Nepal"}
@@ -313,7 +314,7 @@ const getTimeAgo = (dateString) => {
                   <div className="relative h-56 overflow-hidden">
                     {sports.image ? (
                       <img
-                        src={`http://localhost:5000${sports.image}`}
+                        src={`${API_URL}${sports.image}`}
                         alt={sports.title}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
@@ -345,7 +346,7 @@ const getTimeAgo = (dateString) => {
                       <div className="flex items-center gap-2">
                         <img
                           src={sports.journalistImage 
-                            ? `http://localhost:5000${sports.journalistImage}`
+                            ? `${API_URL}${sports.journalistImage}`
                             : khulashaLogo
                           }
                           alt={sports.journalistName || "Khulasha Nepal"}

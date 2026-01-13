@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import khulashaLogo from '../assets/image/khulashalogo.png';
-
+const API_URL = import.meta.env.VITE_API_URL 
 const MainDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -111,7 +111,7 @@ const MainDetail = () => {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1504711434969-e338f2762819?w=600';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
   const getCategoryColor = (category) => {

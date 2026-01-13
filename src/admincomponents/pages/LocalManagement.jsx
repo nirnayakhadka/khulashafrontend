@@ -5,7 +5,8 @@ import {
   Save, X, Edit, Trash2, Search, Filter, Check, FileText, Loader as LoaderIcon
 } from 'lucide-react';
 import axiosInstance from '../../api/axios';
-
+ 
+const API_URL = import.meta.env.VITE_API_URL 
 const RichTextEditor = ({ value, onChange, placeholder }) => {
   const editorRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -259,9 +260,9 @@ const UnifiedNewsManagement = () => {
     setEditingId(news.id);
     setFormData({
       newsImageFile: null,
-      newsImagePreview: news.image ? `http://localhost:5000${news.image}` : '',
+      newsImagePreview: news.image ? `${API_URL}${news.image}` : '',
       journalistImageFile: null,
-      journalistImagePreview: news.journalistImage ? `http://localhost:5000${news.journalistImage}` : '',
+      journalistImagePreview: news.journalistImage ? `${API_URL}${news.journalistImage}` : '',
       title: news.title || '',
       subtitle: news.subtitle || '',
       content: news.paragraph || '',
@@ -422,7 +423,7 @@ const UnifiedNewsManagement = () => {
                   <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 border-t border-b py-3">
                     <div className="flex items-center gap-2">
                       {viewingNews.journalistImage ? (
-                        <img src={`http://localhost:5000${viewingNews.journalistImage}`} alt="" className="w-8 h-8 rounded-full object-cover" />
+                        <img src={`${API_URL}${viewingNews.journalistImage}`} alt="" className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                           <User size={16} className="text-gray-400" />
@@ -434,7 +435,7 @@ const UnifiedNewsManagement = () => {
                     <span>{new Date(viewingNews.publishedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                   </div>
                   {viewingNews.image && (
-                    <img src={`http://localhost:5000${viewingNews.image}`} alt={viewingNews.title} className="w-full rounded-lg" />
+                    <img src={`${API_URL}${viewingNews.image}`} alt={viewingNews.title} className="w-full rounded-lg" />
                   )}
                   <div className="prose prose-sm sm:prose max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: viewingNews.paragraph }} />
                 </div>
@@ -645,7 +646,7 @@ const UnifiedNewsManagement = () => {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               {news.image ? (
-                                <img src={`http://localhost:5000${news.image}`} alt="" className="w-16 h-16 object-cover rounded" />
+                                <img src={`${API_URL}${news.image}`} alt="" className="w-16 h-16 object-cover rounded" />
                               ) : (
                                 <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
                                   <ImageIcon size={24} className="text-gray-400" />
@@ -665,7 +666,7 @@ const UnifiedNewsManagement = () => {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
                               {news.journalistImage ? (
-                                <img src={`http://localhost:5000${news.journalistImage}`} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                <img src={`${API_URL}${news.journalistImage}`} alt="" className="w-8 h-8 rounded-full object-cover" />
                               ) : (
                                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                                   <User size={14} className="text-gray-400" />
@@ -715,7 +716,7 @@ const UnifiedNewsManagement = () => {
                       </div>
                       <div className="flex gap-4">
                         {news.image ? (
-                          <img src={`http://localhost:5000${news.image}`} alt="" className="w-24 h-24 object-cover rounded flex-shrink-0" />
+                          <img src={`${API_URL}${news.image}`} alt="" className="w-24 h-24 object-cover rounded flex-shrink-0" />
                         ) : (
                           <div className="w-24 h-24 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
                             <ImageIcon size={32} className="text-gray-400" />
@@ -732,7 +733,7 @@ const UnifiedNewsManagement = () => {
                           </div>
                           <div className="mt-2 flex items-center gap-2 text-sm">
                             {news.journalistImage ? (
-                              <img src={`http://localhost:5000${news.journalistImage}`} alt="" className="w-6 h-6 rounded-full object-cover" />
+                              <img src={`${API_URL}${news.journalistImage}`} alt="" className="w-6 h-6 rounded-full object-cover" />
                             ) : (
                               <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
                                 <User size={12} className="text-gray-400" />

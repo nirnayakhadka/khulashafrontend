@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar, User, Clock } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import khulashaLogo from '../assets/image/khulashalogo.png';
 import NepaliDate from 'nepali-date-converter';
-
+const API_URL = import.meta.env.VITE_API_URL 
 // Helper function to convert numbers to Nepali
 const toNepaliNumber = (num) => {
   const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
@@ -128,7 +128,7 @@ const getTimeAgo = (dateString) => {
   const fetchArticles = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/news/category/more');
+      const response = await axiosInstance.get('/api/news/category/more');
       
       const articles = response.data.success && Array.isArray(response.data.data) 
         ? response.data.data 
@@ -159,7 +159,7 @@ const getTimeAgo = (dateString) => {
   const showCarousel = currentPage === 1;
   const carouselCards = showCarousel ? paginatedArticles.slice(0, 5).map((article) => ({
     id: article.id,
-    image: article.image ? `http://localhost:5000${article.image}` : "https://images.unsplash.com/photo-1523995462485-3d171b5c8fa9?w=800&q=80",
+    image: article.image ? `${API_URL}${article.image}` : "https://images.unsplash.com/photo-1523995462485-3d171b5c8fa9?w=800&q=80",
     title: article.title,
     category: article.subtitle || "समाचार",
     date: article.publishedDate,
@@ -386,7 +386,7 @@ const ArticleCard = ({ article, onClick, getTimeAgo }) => {
       {/* Image */}
       <div className="relative h-56 overflow-hidden">
         <img
-          src={article.image ? `http://localhost:5000${article.image}` : 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80'}
+          src={article.image ? `${API_URL}${article.image}` : 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80'}
           alt={article.title}
           className="w-full h-full object-cover transition-transform duration-500"
           style={{
@@ -412,7 +412,7 @@ const ArticleCard = ({ article, onClick, getTimeAgo }) => {
           <div className="flex items-center gap-2">
             <img
               src={article.journalistImage 
-                ? `http://localhost:5000${article.journalistImage}`
+                ? `${API_URL}${article.journalistImage}`
                 : khulashaLogo
               }
               alt={article.journalistName || "Khulasha Nepal"}

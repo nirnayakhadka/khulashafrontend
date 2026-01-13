@@ -8,6 +8,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import NepaliDate from 'nepali-date-converter';
+const API_URL = import.meta.env.VITE_API_URL 
 function CategoryPage() {
   const { category } = useParams(); // Get category from URL
   const navigate = useNavigate();
@@ -109,7 +110,7 @@ const getTimeAgo = (dateString) => {
     id: news.id,
     title: news.title,
     excerpt: news.subtitle || stripHtml(news.paragraph)?.substring(0, 100) + '...' || '',
-    image: news.image?.startsWith('http') ? news.image : `http://localhost:5000${news.image}`
+    image: news.image?.startsWith('http') ? news.image : `${API_URL}${news.image}`
   }));
 
   const trendingPosts = newsList.slice(0, 3);
@@ -298,7 +299,7 @@ const getTimeAgo = (dateString) => {
                           : 'w-full h-48 sm:h-56 md:h-64'
                       }`}>
                         <img
-                          src={post.image?.startsWith('http') ? post.image : `http://localhost:5000${post.image}`}
+                          src={post.image?.startsWith('http') ? post.image : `${API_URL}${post.image}`}
                           alt={post.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -425,7 +426,7 @@ const getTimeAgo = (dateString) => {
                         onClick={() => navigate(`/${category}/${post.id}`)}
                       >
                         <img
-                          src={post.image?.startsWith('http') ? post.image : `http://localhost:5000${post.image}`}
+                          src={post.image?.startsWith('http') ? post.image : `${API_URL}${post.image}`}
                           alt={post.title}
                           className="w-20 h-16 sm:w-24 sm:h-20 object-cover rounded-lg sm:rounded-xl flex-shrink-0"
                         />

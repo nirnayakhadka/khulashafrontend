@@ -52,7 +52,7 @@ function MiniNav() {
 
       try {
         console.log('🔄 Nav: Fetching categories');
-        const response = await axiosInstance.get('/categories');
+        const response = await axiosInstance.get('/api/categories');
         const fetched = response.data.categories || [];
 
         cachedCategories = fetched;

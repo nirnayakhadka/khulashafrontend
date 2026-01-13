@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaFacebook, FaWhatsapp, FaTwitter, FaInstagram, FaYoutube, FaPhone, FaEnvelope } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+const API_URL = import.meta.env.VITE_API_URL 
 function Footer() {
   const [footerData, setFooterData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12,7 +13,7 @@ function Footer() {
 
   const fetchFooterData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/footer/public');
+      const response = await fetch(`${API_URL}/api/footer/public`);
       if (!response.ok) throw new Error(`Failed: ${response.status}`);
       const data = await response.json();
       if (data.success && data.footer) {

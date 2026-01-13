@@ -28,7 +28,7 @@ function Main() {
         }
 
         console.log('🔄 Fetching fresh data');
-        const response = await axiosInstance.get('/news/homepage');
+        const response = await axiosInstance.get('api/news/homepage');
         
         // Update cache
         cachedData = response.data;

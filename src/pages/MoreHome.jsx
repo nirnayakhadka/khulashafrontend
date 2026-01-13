@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Clock, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NepaliDate from 'nepali-date-converter';
+const API_URL = import.meta.env.VITE_API_URL 
 const MoreHome = ({ news = [] }) => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('list');
@@ -12,7 +13,7 @@ const MoreHome = ({ news = [] }) => {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://risingnepaldaily.com/storage/media/73522/HoR.jpeg';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
 

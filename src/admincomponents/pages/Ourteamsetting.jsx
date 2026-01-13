@@ -7,7 +7,7 @@ import {
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-
+const API_URL = import.meta.env.VITE_API_URL 
 // Team Member Form Modal
 const TeamMemberModal = ({ show, member, onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -45,7 +45,7 @@ const TeamMemberModal = ({ show, member, onClose, onSave }) => {
         },
         isActive: member.isActive !== undefined ? member.isActive : true
       });
-      setImagePreview(member.imageUrl ? `http://localhost:5000${member.imageUrl}` : null);
+      setImagePreview(member.imageUrl ? `${API_URL}${member.imageUrl}` : null);
     } else {
       setFormData({
         name: '',
@@ -587,7 +587,7 @@ function Ourteamsetting() {
                 <div className="relative h-48 bg-gray-200">
                   {member.imageUrl ? (
                     <img
-                      src={`http://localhost:5000${member.imageUrl}`}
+                      src={`${API_URL}${member.imageUrl}`}
                       alt={member.name}
                       className="w-full h-full object-cover"
                     />

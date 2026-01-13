@@ -229,10 +229,7 @@ function Setting() {
             
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
               <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-600">Admin ID</p>
-                  <p className="font-mono text-lg font-semibold text-gray-800">#{admin?.id}</p>
-                </div>
+
                 <div className="text-right">
                   <p className="text-sm text-gray-600">Member Since</p>
                   <p className="font-medium text-gray-800">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Newspaper, Users, Globe, MoreHorizontal, Trophy, MapPin, RefreshCw, TrendingUp, Eye } from 'lucide-react';
-
+const API_URL = import.meta.env.VITE_API_URL 
 const Dashboard = () => {
   const [stats, setStats] = useState({
     news: 0,
@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
 
   // API Base URL
-  const API_URL = 'http://localhost:5000/api';
+  const API_URL = import.meta.env.VITE_API_URL 
   
   // Get token from localStorage
   const token = localStorage.getItem('token');
@@ -209,7 +209,7 @@ if (res.ok) {
                       {/* Article Image */}
                       {article.image ? (
                         <img 
-                          src={`http://localhost:5000${article.image}`} 
+                          src={`${API_URL}${article.image}`} 
                           alt={article.title}
                           className="w-24 h-24 object-cover rounded-lg flex-shrink-0 shadow-sm"
                         />
@@ -238,7 +238,7 @@ if (res.ok) {
                           <div className="flex items-center gap-2">
                             {article.journalistImage ? (
                               <img 
-                                src={`http://localhost:5000${article.journalistImage}`}
+                                src={`${API_URL}${article.journalistImage}`}
                                 alt={article.journalistName}
                                 className="w-6 h-6 rounded-full object-cover"
                               />

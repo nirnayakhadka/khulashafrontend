@@ -5,6 +5,7 @@ import axiosInstance from '../api/axios';
 import khulashaLogo from '../assets/image/khulashalogo.png';
 import { FaTiktok } from 'react-icons/fa';
 import NepaliDate from 'nepali-date-converter';
+const API_URL = import.meta.env.VITE_API_URL 
 const MoreDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -25,9 +26,9 @@ const fetchArticle = async () => {
     
     // Fetch article detail, related articles, and mixed news in parallel
     const [response, allArticlesResponse, mixedRes] = await Promise.all([
-      axiosInstance.get(`/news/${id}`),
-      axiosInstance.get('/news/category/more'),
-      axiosInstance.get(`/news/mixed-feed/${id}?limit=18`)
+      axiosInstance.get(`/api/news/${id}`),
+      axiosInstance.get('/api/news/category/more'),
+      axiosInstance.get(`/api/news/mixed-feed/${id}?limit=18`),
     ]);
     
     // Extract article from response
@@ -184,7 +185,7 @@ const getTimeAgo = (dateString) => {
 
   const getImageUrl = (image) => {
     if (!image) return 'https://images.unsplash.com/photo-1504711434969-e338f2762819?w=600';
-    return image.startsWith('http') ? image : `http://localhost:5000${image}`;
+    return image.startsWith('http') ? image : `${API_URL}${image}`;
   };
 
   const getCategoryColor = (category) => {
