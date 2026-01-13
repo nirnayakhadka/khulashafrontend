@@ -291,7 +291,7 @@ const Carousel = ({ items, index, onNext, onPrev, onItemClick }) => {
 
   return (
     <div className="py-8">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900">More Local News</h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-900">थप स्थानीय समाचार</h2>
       <div className="relative group">
         <button
           onClick={onPrev}

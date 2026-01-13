@@ -474,7 +474,7 @@ function Authors() {
                   </div>
                   <div className="relative flex justify-center">
                     <span className="px-4 bg-white text-sm text-gray-500 font-medium">
-                      Change Password (Optional)
+                      Change Password 
                     </span>
                   </div>
                 </div>

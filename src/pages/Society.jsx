@@ -365,7 +365,7 @@ const getTimeAgo = (dateString) => {
         {politicsStories.length > 0 && (
           <div className="mb-12 md:mb-20">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 md:mb-6 pb-3 border-b border-gray-300">
-              FEATURED STORIES
+             
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
               <div 

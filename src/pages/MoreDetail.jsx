@@ -239,7 +239,7 @@ const getTimeAgo = (dateString) => {
 
               <div className="p-8">
                 {/* Title */}
-                <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4 leading-normal md:text-4xl">
                   {article.title}
                 </h1>
 
