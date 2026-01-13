@@ -96,13 +96,13 @@ function Ourteam() {
             {teamMembers.map((member) => (
               <div
                 key={member._id}
-                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-2 flex flex-col"
+                className="group bg-white rounded-2xl shadow-lg+ "
               >
                 {/* Card Content */}
                 <div className="p-8 text-center flex flex-col flex-1">
                   {/* Circular Image Container */}
-                  <div className="relative inline-block mb-6">
-                    <div className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-blue-100 group-hover:ring-blue-300 transition-all duration-300 shadow-xl">
+                  <div className="relative inline-block mb-6 mx-auto">
+                    <div className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-blue-100 ">
                       {member.imageUrl ? (
                         <img
                           src={`http://localhost:5000${member.imageUrl}`}

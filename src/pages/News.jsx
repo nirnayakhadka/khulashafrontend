@@ -7,6 +7,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { useNavigate } from 'react-router-dom';
+import NepaliDate from 'nepali-date-converter';
 
 function News() {
   const navigate = useNavigate();
@@ -20,26 +21,24 @@ function News() {
   useEffect(() => {
     fetchNews();
   }, []);
-const fetchNews = async () => {
-  try {
-    setLoading(true);
-    // Filter by 'news' category
-    const response = await axiosInstance.get('/news/category/news');
-    // Handle the response properly - extract the array from the object
-    const articles = response.data.success && Array.isArray(response.data.data) 
-  ? response.data.data 
-  : [];
-setNewsList(articles);
-    setError(null);
-  } catch (err) {
-    setError('Failed to load news');
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
 
-  // Strip HTML tags and get plain text
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/news/category/news');
+      const articles = response.data.success && Array.isArray(response.data.data) 
+        ? response.data.data 
+        : [];
+      setNewsList(articles);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load news');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const stripHtml = (html) => {
     if (!html) return '';
     const tmp = document.createElement('div');
@@ -47,22 +46,24 @@ setNewsList(articles);
     return tmp.textContent || tmp.innerText || '';
   };
 
-  // Prepare featured slides from news data
+  // Featured slides from first 4 news
   const featuredSlides = newsList.slice(0, 4).map(news => ({
     id: news.id,
     title: news.title,
-    excerpt: news.subtitle || stripHtml(news.paragraph)?.substring(0, 100) + '...' || '',
+    excerpt: news.subtitle || stripHtml(news.paragraph)?.substring(0, 100) + '.' || '',
     image: news.image?.startsWith('http') ? news.image : `http://localhost:5000${news.image}`
   }));
 
-  const trendingPosts = newsList.slice(0, 3);
-  const popularPosts = newsList.slice(3, 6);
+  // FIXED: Skip first 4 items for trending/popular to avoid duplicates
+  const trendingPosts = newsList.slice(4, 7);
+  const popularPosts = newsList.slice(7, 10);
   
-  // Pagination logic
-  const totalPages = Math.ceil(newsList.length / postsPerPage);
+  // FIXED: Main content starts from index 4 (skipping featured items)
+  const remainingNews = newsList.slice(4);
+  const totalPages = Math.ceil(remainingNews.length / postsPerPage);
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = newsList.slice(indexOfFirstPost, indexOfLastPost);
+  const currentPosts = remainingNews.slice(indexOfFirstPost, indexOfLastPost);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -83,22 +84,55 @@ setNewsList(articles);
     }
   };
 
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const publishedDate = new Date(date);
-    const diffInMs = now - publishedDate;
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    
-    if (diffInDays === 0) {
-      if (diffInHours === 0) return 'भर्खरै';
-      return `${diffInHours} घण्टा अघि`;
-    }
-    if (diffInDays === 1) return '१ दिन अघि';
-    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
-    return `${Math.floor(diffInDays / 30)} महिना अघि`;
-  };
+
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
+
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
 
   if (loading) {
     return (
@@ -158,10 +192,10 @@ setNewsList(articles);
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 lg:p-12 text-white">
-                        <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 leading-tight">
+                        <h2 className="text-lg sm:text-2xl md:text-2xl lg:text-4xl xl:text-4xl font-bold mb-2 sm:mb-3 md:mb-4 leading-tight">
                           {slide.title}
                         </h2>
-                        <p className="text-sm sm:text-base md:text-lg lg:text-xl opacity-90 max-w-3xl hidden sm:block line-clamp-2 md:line-clamp-none">
+                        <p className="text-sm sm:text-base md:text-lg lg:text-xl opacity-90 max-w-2xl hidden sm:block line-clamp-2 md:line-clamp-2">
                           {slide.excerpt}
                         </p>
                       </div>
@@ -170,7 +204,6 @@ setNewsList(articles);
                 ))}
               </Swiper>
 
-              {/* Navigation buttons */}
               <button
                 className="swiper-button-prev-custom absolute left-2 sm:left-4 md:left-6 lg:left-8 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white rounded-full p-2 sm:p-3 md:p-4 shadow-xl transition"
                 aria-label="Previous slide"
@@ -227,7 +260,6 @@ setNewsList(articles);
                       : 'flex flex-col'
                   }`}
                 >
-                  {/* Image */}
                   <div className={`relative overflow-hidden flex-shrink-0 ${
                     viewMode === 'list'
                       ? 'w-32 h-32 xs:w-40 xs:h-40 sm:w-64 sm:h-56 md:w-80 md:h-64 lg:w-96'
@@ -240,7 +272,6 @@ setNewsList(articles);
                     />
                   </div>
 
-                  {/* Content */}
                   <div className={`flex-1 flex flex-col justify-between min-w-0 ${
                     viewMode === 'list' 
                       ? 'p-3 sm:p-6 lg:p-8' 
@@ -249,7 +280,7 @@ setNewsList(articles);
                     <div>
                       <h4 className={`font-bold mb-2 sm:mb-3 lg:mb-4 hover:text-blue-900 transition ${
                         viewMode === 'list' 
-                          ? 'text-base sm:text-2xl lg:text-3xl line-clamp-2' 
+                          ? 'text-base sm:text-2xl lg:text-2xl line-clamp-2' 
                           : 'text-lg sm:text-xl line-clamp-2'
                       }`}>
                         {post.title}
@@ -259,7 +290,7 @@ setNewsList(articles);
                           ? 'text-xs sm:text-base lg:text-lg mb-2 sm:mb-4 lg:mb-6 line-clamp-2 sm:line-clamp-3' 
                           : 'text-sm sm:text-base mb-3 sm:mb-4 line-clamp-2 sm:line-clamp-3'
                       }`}>
-                        {post.subtitle || stripHtml(post.paragraph)?.substring(0, viewMode === 'list' ? 200 : 120) + '...' || ''}
+                        {post.subtitle || stripHtml(post.paragraph)?.substring(0, viewMode === 'list' ? 200 : 120) + '' || ''}
                       </p>
                     </div>
                     
@@ -268,16 +299,7 @@ setNewsList(articles);
                         ? 'text-xs sm:text-sm' 
                         : 'text-xs sm:text-sm'
                     }`}>
-                      <span className="flex items-center gap-1 sm:gap-2">
-                        <Calendar size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
-                        <span className="truncate text-xs sm:text-sm">
-                          {new Date(post.publishedDate).toLocaleDateString('ne-NP', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
-                        </span>
-                      </span>
+
                       <span className="flex items-center gap-1 sm:gap-2">
                         <Clock size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
                         <span className="text-xs sm:text-sm">{getTimeAgo(post.publishedDate)}</span>
@@ -337,7 +359,7 @@ setNewsList(articles);
                 <ol className="space-y-4 sm:space-y-6">
                   {trendingPosts.map((post, index) => (
                     <li key={post.id} className="flex gap-3 sm:gap-4">
-                      <span className="text-2xl sm:text-3xl font-extrabold text-gray-200">{index + 1}</span>
+                      <span className="text-2xl sm:text-2xl font-extrabold text-gray-200">{index + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p 
                           className="font-semibold text-base sm:text-lg hover:text-blue-900 cursor-pointer transition line-clamp-2"
@@ -367,7 +389,7 @@ setNewsList(articles);
                         alt={post.title}
                         className="w-20 h-16 sm:w-24 sm:h-20 object-cover rounded-lg sm:rounded-xl flex-shrink-0"
                       />
-                      <p className="font-medium text-sm sm:text-base group-hover:text-blue-900 transition line-clamp-3 flex-1 min-w-0">
+                      <p className="font-medium text-sm sm:text-base group-hover:text-blue-900 transition flex-1 min-w-0">
                         {post.title}
                       </p>
                     </div>

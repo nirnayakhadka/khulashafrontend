@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import NepaliDate from 'nepali-date-converter';
 const NewsHome = ({ news = [] }) => {
   const navigate = useNavigate();
   const [displayCount, setDisplayCount] = useState(12);
@@ -8,22 +8,55 @@ const NewsHome = ({ news = [] }) => {
   const newsList = news;
   const hasMore = displayCount < newsList.length;
 
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const publishedDate = new Date(date);
-    const diffInMs = now - publishedDate;
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    
-    if (diffInDays === 0) {
-      if (diffInHours === 0) return 'भर्खरै';
-      return `${diffInHours} घण्टा अघि`;
-    }
-    if (diffInDays === 1) return '१ दिन अघि';
-    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
-    return `${Math.floor(diffInDays / 30)} महिना अघि`;
-  };
+
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
+
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
 
   const stripHtml = (html) => {
     if (!html) return '';
@@ -57,9 +90,7 @@ const NewsHome = ({ news = [] }) => {
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-gray-900">समाचार</h2>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 font-medium">
-                {newsList.length} समाचारहरू
-              </span>
+
               <div className="w-3 h-3 bg-blue-500 rounded-full animate-ping"></div>
             </div>
           </div>
@@ -89,7 +120,7 @@ const NewsHome = ({ news = [] }) => {
                     {getExcerpt(item)}
                   </p>
                   <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
-                    <span>{item.journalistName || 'समाचारदाता'}</span>
+                    
                     <span>{getTimeAgo(item.publishedDate)}</span>
                   </div>
                 </div>
@@ -97,17 +128,7 @@ const NewsHome = ({ news = [] }) => {
             ))}
           </div>
 
-          {/* Load More Button */}
-          {hasMore && (
-            <div className="mt-10 text-center">
-              <button
-                onClick={() => setDisplayCount(prev => prev + 12)}
-                className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
-              >
-                थप समाचार हेर्नुहोस् ({newsList.length - displayCount} बाँकी)
-              </button>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

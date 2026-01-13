@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-
+import NepaliDate from 'nepali-date-converter';
 const API_BASE_URL = 'http://localhost:5000/api/news/category/local';
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=1200&q=80';
 
@@ -13,29 +13,56 @@ const stripHtml = (html) => {
   return tmp.textContent || tmp.innerText || '';
 };
 
-const getTimeAgo = (date) => {
+
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
+
+const getTimeAgo = (dateString) => {
   const now = new Date();
-  const published = new Date(date);
-  const diffInMs = now - published;
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
 
-  if (diffInHours < 1) return 'Just now';
-  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-  
-  return published.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
 };
 
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
-};
 
 const getImageUrl = (imagePath) => {
   return imagePath ? `http://localhost:5000${imagePath}` : FALLBACK_IMAGE;
@@ -104,30 +131,29 @@ const HeroSlider = ({ slides, currentSlide, onSlideChange, onArticleClick }) => 
         <div className="max-w-7xl mx-auto">
           <div className="max-w-3xl">
             <div className="flex items-center space-x-4 text-sm mb-3">
-           
               <span>{current.date}</span>
             </div>
-            <h1 className="text-2xl font-bold mb-4 leading-tight hover:text-blue-700 transition">
+            <h1 className="text-2xl font-bold mb-4 leading-normal line-clamp-2 hover:text-blue-700 transition">
               {current.title}
             </h1>
           </div>
         </div>
       </div>
 
-      <button
-        onClick={prevSlide}
-        className="absolute left-8 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition opacity-0 group-hover:opacity-100 z-20"
-        aria-label="Previous slide"
-      >
-        <ChevronLeft size={28} />
-      </button>
-      <button
-        onClick={nextSlide}
-        className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition opacity-0 group-hover:opacity-100 z-20"
-        aria-label="Next slide"
-      >
-        <ChevronRight size={28} />
-      </button>
+<button
+  onClick={prevSlide}
+  className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition opacity-100 md:opacity-0 md:group-hover:opacity-100 z-20"
+  aria-label="Previous slide"
+>
+  <ChevronLeft size={24} className="md:w-7 md:h-7" />
+</button>
+<button
+  onClick={nextSlide}
+  className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition opacity-100 md:opacity-0 md:group-hover:opacity-100 z-20"
+  aria-label="Next slide"
+>
+  <ChevronRight size={24} className="md:w-7 md:h-7" />
+</button>
 
       <div className="absolute bottom-8 right-8 flex space-x-2 z-10">
         {slides.map((_, index) => (
@@ -163,19 +189,9 @@ const StoryCard = ({ story, onClick, size = 'medium' }) => {
         />
       </div>
       <div className="px-4 py-3 flex-grow flex flex-col">
-        {story.category && (
-          <span className="text-xs font-bold text-blue-600 mb-2 block uppercase">
-            {story.category}
-          </span>
-        )}
-        <h2 className="text-base font-bold text-gray-900 mb-2 group-hover:text-blue-900 transition line-clamp-2 leading-tight">
+        <h2 className="text-base font-bold text-gray-900 mb-2 group-hover:text-blue-900 transition line-clamp-3 leading-normal">
           {story.title}
         </h2>
-        {story.description && (
-          <p className="text-gray-600 text-sm mb-2 line-clamp-2 leading-snug flex-grow">
-            {story.description}
-          </p>
-        )}
         {story.time && (
           <span className="text-xs text-gray-500 mt-auto">{story.time}</span>
         )}
@@ -188,22 +204,83 @@ const StoryCard = ({ story, onClick, size = 'medium' }) => {
 const SidebarStory = ({ story, onClick }) => (
   <div
     onClick={() => onClick(story.id)}
-    className="bg-white rounded-lg shadow hover:shadow-lg transition-all duration-300 group cursor-pointer flex flex-col overflow-hidden"
+    className="bg-white hover:bg-gray-50 transition-all duration-300 group cursor-pointer p-3"
   >
-    <img 
-      src={story.image} 
-      alt={story.title} 
-      className="w-full h-28 object-cover group-hover:scale-105 transition duration-500" 
-      loading="lazy"
-    />
-    <div className="px-3 py-3 flex-grow">
-      <h4 className="font-semibold text-gray-900 text-sm mb-2 group-hover:text-blue-600 transition line-clamp-2 leading-tight">
-        {story.title}
-      </h4>
-      <span className="text-xs text-gray-500">{story.time}</span>
+    <div className="flex gap-3">
+      <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-200">
+        <img 
+          src={story.image} 
+          alt={story.title} 
+          className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
+          loading="lazy"
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold text-gray-900 text-sm mb-2 group-hover:text-blue-600 transition line-clamp-2 leading-normal">
+          {story.title}
+        </h4>
+        <span className="text-xs text-gray-500">{story.time}</span>
+      </div>
     </div>
   </div>
 );
+
+// Section with Navigation Component
+const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex justify-center items-center gap-2 mt-12 mb-8">
+      <button
+        onClick={() => {
+          if (currentPage > 1) {
+            onPageChange(currentPage - 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        className="w-10 h-10 bg-white shadow-md rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={currentPage === 1}
+        aria-label="Previous page"
+      >
+        <ChevronLeft size={20} />
+      </button>
+      
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+        <button
+          key={pageNum}
+          onClick={() => {
+            onPageChange(pageNum);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`w-10 h-10 rounded-lg font-semibold transition ${
+            pageNum === currentPage
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm'
+          }`}
+          aria-label={`Go to page ${pageNum}`}
+        >
+          {pageNum}
+        </button>
+      ))}
+      
+      <button
+        onClick={() => {
+          if (currentPage < totalPages) {
+            onPageChange(currentPage + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        className="w-10 h-10 bg-white shadow-md rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={currentPage === totalPages}
+        aria-label="Next page"
+      >
+        <ChevronRight size={20} />
+      </button>
+    </div>
+  );
+};
+
+// Section with Navigation Component (removed - no longer needed)
 
 // Carousel Component
 const Carousel = ({ items, index, onNext, onPrev, onItemClick }) => {
@@ -272,26 +349,33 @@ function Local() {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [videoCarouselIndex, setVideoCarouselIndex] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [localNews, setLocalNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-const fetchLocalNews = useCallback(async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    const response = await fetch(API_BASE_URL);
-    if (!response.ok) throw new Error('Failed to fetch local news');
-    const data = await response.json();
-    
-    // Handle the response - extract array from object
-    const articles = data.success && Array.isArray(data.data) 
-      ? data.data 
-      : Array.isArray(data) 
-        ? data 
-        : [];
-    
-    setLocalNews(articles);
+  const ITEMS_PER_PAGE = 30;
+
+  const fetchLocalNews = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(API_BASE_URL);
+      if (!response.ok) throw new Error('Failed to fetch local news');
+      const data = await response.json();
+      
+      const articles = data.success && Array.isArray(data.data) 
+        ? data.data 
+        : Array.isArray(data) 
+          ? data 
+          : [];
+      
+      // Sort by date (newest first)
+      const sortedArticles = articles.sort((a, b) => 
+        new Date(b.publishedDate) - new Date(a.publishedDate)
+      );
+      
+      setLocalNews(sortedArticles);
     } catch (err) {
       setError('Failed to load local news articles');
       console.error('Error fetching local news:', err);
@@ -309,7 +393,7 @@ const fetchLocalNews = useCallback(async () => {
   }, [navigate]);
 
   // Memoized data transformations
-  const { heroSlides, mainStories, sidebarStories, middleCards, bottomStories, videoCards } = useMemo(() => {
+  const { heroSlides, mainStories, sidebarStories, middleCards, bottomStories, videoCards, totalPages } = useMemo(() => {
     const createStory = (news, includeTime = false) => ({
       id: news.id,
       image: getImageUrl(news.image),
@@ -317,38 +401,45 @@ const fetchLocalNews = useCallback(async () => {
       ...(includeTime && { time: getTimeAgo(news.publishedDate) })
     });
 
+    // Calculate pagination
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedNews = localNews.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(localNews.length / ITEMS_PER_PAGE);
+
     return {
-      heroSlides: localNews.slice(0, 3).map(news => ({
+      heroSlides: paginatedNews.slice(0, 5).map(news => ({
         ...createStory(news),
-        date: formatDate(news.publishedDate),
+        date: getTimeAgo(news.publishedDate),
         category: 'LOCAL NEWS',
         author: news.journalistName || 'Unknown Author'
       })),
       
-      mainStories: localNews.slice(3, 7).map(news => ({
+      mainStories: paginatedNews.slice(5, 11).map(news => ({
         ...createStory(news, true),
         category: 'LOCAL NEWS',
         description: stripHtml(news.subtitle || news.paragraph?.substring(0, 100) + '...' || 'No description available')
       })),
       
-      sidebarStories: localNews.slice(7, 12).map(news => createStory(news, true)),
+      sidebarStories: paginatedNews.slice(11, 21).map(news => createStory(news, true)),
       
-      middleCards: localNews.slice(12, 15).map(news => ({
-        ...createStory(news),
+      middleCards: paginatedNews.slice(21, 24).map(news => ({
+        ...createStory(news, true),
         category: 'LOCAL NEWS',
         description: stripHtml(news.subtitle || news.paragraph?.substring(0, 80) + '...' || 'Read more...')
       })),
       
-      bottomStories: localNews.slice(15, 17).map((news, index) => ({
-        ...createStory(news),
+      bottomStories: paginatedNews.slice(24, 26).map((news, index) => ({
+        ...createStory(news, true),
         category: 'LOCAL NEWS',
         description: stripHtml(news.subtitle || news.paragraph?.substring(0, 100) + '...' || 'Read more...'),
         large: index === 1
       })),
       
-      videoCards: localNews.slice(17).map(news => createStory(news))
+      videoCards: paginatedNews.slice(26, 30).map(news => createStory(news, true)),
+      
+      totalPages
     };
-  }, [localNews]);
+  }, [localNews, currentPage, ITEMS_PER_PAGE]);
 
   const nextVideo = useCallback(() => {
     setVideoCarouselIndex(prev => Math.min(prev + 1, Math.max(0, videoCards.length - 3)));
@@ -356,6 +447,11 @@ const fetchLocalNews = useCallback(async () => {
 
   const prevVideo = useCallback(() => {
     setVideoCarouselIndex(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    setVideoCarouselIndex(0);
   }, []);
 
   if (loading) return <LoadingState />;
@@ -371,60 +467,79 @@ const fetchLocalNews = useCallback(async () => {
         onArticleClick={openArticlePopup}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Top Stories Grid */}
         {(mainStories.length > 0 || sidebarStories.length > 0) && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12 lg:items-start">
-            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-fr">
-              {mainStories.map(story => (
-                <StoryCard key={story.id} story={story} onClick={openArticlePopup} />
-              ))}
+          <div className="mb-8 sm:mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+              {/* Left Side - Main Stories (3 columns x 2 rows) */}
+              <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {mainStories.map(story => (
+                  <StoryCard key={story.id} story={story} onClick={openArticlePopup} />
+                ))}
+              </div>
+
+              {/* Right Side - Compact Sticky Sidebar */}
+              {sidebarStories.length > 0 && (
+                <div className="lg:col-span-1">
+                  <div className="lg:sticky lg:top-4 bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div className="bg-white border-b-2 border-gray-200 p-3">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900">थप समाचार</h3>
+                    </div>
+                    <div className="divide-y divide-gray-200 max-h-[500px] overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
+                      {sidebarStories.map(story => (
+                        <SidebarStory
+                          key={story.id}
+                          story={story}
+                          onClick={openArticlePopup}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-
-{sidebarStories.length > 0 && (
-  <div className="space-y-4">
-    <div className="bg-gradient-to-r from-blue-500 to-blue-700 text-white p-4 rounded-lg shadow-md">
-      <h3 className="text-lg font-bold">Hot Topics</h3>
-    </div>
-
-    {sidebarStories.slice(0, 3).map(story => (
-      <SidebarStory
-        key={story.id}
-        story={story}
-        onClick={openArticlePopup}
-      />
-    ))}
-  </div>
-)}
-
           </div>
         )}
 
         {/* Middle Cards */}
         {middleCards.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {middleCards.map(card => (
-              <StoryCard key={card.id} story={card} onClick={openArticlePopup} />
-            ))}
+          <div className="mb-8 sm:mb-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+              {middleCards.map(card => (
+                <StoryCard key={card.id} story={card} onClick={openArticlePopup} />
+              ))}
+            </div>
           </div>
         )}
 
         {/* Bottom Stories */}
         {bottomStories.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {bottomStories.map(story => (
-              <StoryCard key={story.id} story={story} onClick={openArticlePopup} size="large" />
-            ))}
+          <div className="mb-8 sm:mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {bottomStories.map(story => (
+                <StoryCard key={story.id} story={story} onClick={openArticlePopup} size="large" />
+              ))}
+            </div>
           </div>
         )}
 
         {/* Video Carousel */}
-        <Carousel
-          items={videoCards}
-          index={videoCarouselIndex}
-          onNext={nextVideo}
-          onPrev={prevVideo}
-          onItemClick={openArticlePopup}
+        {videoCards.length > 0 && (
+          <Carousel
+            items={videoCards}
+            index={videoCarouselIndex}
+            onNext={nextVideo}
+            onPrev={prevVideo}
+            onItemClick={openArticlePopup}
+          />
+        )}
+
+        {/* Pagination Controls */}
+        <PaginationControls 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
         />
       </div>
     </div>

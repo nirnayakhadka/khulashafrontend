@@ -8,16 +8,16 @@ import AdminLayout from './layouts/AdminLayout';
 // Public Pages
 import Main from './pages/Main';
 import NewsDetail from './pages/NewsDetail';
-import CategoryPage from './pages/CategoryPage'; // NEW: Single dynamic category page
+import CategoryPage from './pages/CategoryPage'; // Single dynamic category page
 
-// Legacy category pages (optional - keep for backward compatibility or remove)
+//  category pages 
 import News from './pages/News';
 import Society from './pages/Society';
 import Local from './pages/Local';
 import More from './pages/More';
 import Sports from './pages/Sports';
 
-// Detail pages (now also dynamic)
+// Detail pages 
 import SocietyDetail from './pages/SocietyDetail';
 import LocalDetail from './pages/LocalDetail';
 import SportDetail from './pages/SportDetail';
@@ -64,12 +64,11 @@ function App() {
           
           <Route path="/main/:id" element={<MainDetail />} />
         </Route>
-
-        {/* Login Routes - No Nav/Footer */}
+        {/* Login Routes -r */}
         <Route path="/login" element={<Login />} />
         <Route path="/admin/login" element={<Login />} />
 
-        {/* Protected Admin Routes - with AdminNav */}
+        {/* Protected Admin Routes */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import fallbackLogo from '../assets/image/khulashafallbacklogo.png';
 
 function Nav() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -43,7 +44,7 @@ function Nav() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch weather data
+
   useEffect(() => {
     const fetchWeather = async () => {
       try {
@@ -85,6 +86,12 @@ function Nav() {
     return () => clearInterval(weatherInterval);
   }, []);
 
+  // Convert English numerals to Nepali numerals
+  const toNepaliNumerals = (num) => {
+    const nepaliNumerals = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+    return num.toString().split('').map(d => nepaliNumerals[parseInt(d)]).join('');
+  };
+
   // Get English date and time
   const getEnglishDateTime = () => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -124,7 +131,10 @@ function Nav() {
     // This is approximate - use a proper library for production
     const month = 8; // Pus (December/January period)
     
-    return `${nepaliMonths[month]} ${date} ${nepaliDays[day]}`;
+    // Convert date to Nepali numerals
+    const nepaliDate = toNepaliNumerals(date);
+    
+    return `${nepaliMonths[month]} ${nepaliDate} ${nepaliDays[day]}`;
   };
 
   // Format time in Nepali
@@ -137,9 +147,8 @@ function Nav() {
     hours = hours % 12 || 12;
     
     // Convert to Nepali numerals
-    const nepaliNumerals = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
-    const hoursStr = hours.toString().split('').map(d => nepaliNumerals[parseInt(d)]).join('');
-    const minutesStr = minutes.split('').map(d => nepaliNumerals[parseInt(d)]).join('');
+    const hoursStr = toNepaliNumerals(hours);
+    const minutesStr = toNepaliNumerals(minutes);
     
     return `${hoursStr}:${minutesStr} ${period}`;
   };
@@ -149,28 +158,32 @@ function Nav() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-0">
           {/* Logo and Info Section */}
-          <div className="md:text-left">
+          <div className="mx-auto xl:mx-0 xl:text-left">
+
             {/* Logo */}
-            <div className=" rounded-lg shadow-md inline-block">
+            <div className=" rounded-lg  inline-block">
               {logoLoading ? (
                 <div className="h-16 w-48 flex items-center justify-center">
                   <p className="text-gray-500">Loading...</p>
                 </div>
               ) : logoUrl ? (
-                <img 
+                <div className="flex items-center justify-start w-48 h-30 overflow-hidden object-top">
+                  <img
                   src={logoUrl} 
                   alt="Khulasa Nepal Logo" 
-                  className="h-16 w-auto object-contain"
+                  className="w-40 h-38 object-fill shadow-md object-top"
+                  onError={(e) => { e.target.src = fallbackLogo; }}
                 />
+                </div>
               ) : (
-                // Fallback to text logo if no image is available
-                <>
-                  <h1 className="text-4xl font-bold">
-                    <span className="text-purple-600">खुलासा</span>{' '}
-                    <span className="text-red-500">नेपाल</span>
-                  </h1>
-                  <p className="text-sm text-gray-700 mt-1">Khulasanepal.com</p>
-                </>
+                // Fallback to local image if no API image is available
+                <div className="flex items-center justify-start w-48 h-30 overflow-hidden object-top">
+                  <img
+                  src={fallbackLogo} 
+                  alt="Khulasa Nepal Logo" 
+                  className="w-40 h-38 object-fill shadow-md object-top"
+                />
+                </div>
               )}
             </div>
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import khulashaLogo from '../assets/image/khulashalogo.png';
+import NepaliDate from 'nepali-date-converter';
 
 function MainHome({ news = [] }) {
   const navigate = useNavigate();
@@ -18,22 +19,55 @@ function MainHome({ news = [] }) {
     return image.startsWith('http') ? image : `http://localhost:5000${image}`;
   };
 
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const publishedDate = new Date(date);
-    const diffInMs = now - publishedDate;
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    
-    if (diffInDays === 0) {
-      if (diffInHours === 0) return 'भर्खरै';
-      return `${diffInHours} घण्टा अघि`;
-    }
-    if (diffInDays === 1) return '१ दिन अघि';
-    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
-    return `${Math.floor(diffInDays / 30)} महिना अघि`;
-  };
+
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
+
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
 
   const nextSlide = () => {
     if (carouselNews.length > 0) {
@@ -87,22 +121,7 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
             <div className="max-w-7xl mx-auto">
               <div className="grid grid-cols-1 gap-12 md:gap-16 lg:gap-20">
                 {heroNews.map((newsItem, index) => {
-                  const getFormattedTime = (date) => {
-                    const now = new Date();
-                    const publishedDate = new Date(date);
-                    const diffInMs = now - publishedDate;
-                    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-                    
-                    if (diffInHours < 24) {
-                      if (diffInHours === 0) {
-                        const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-                        return `${diffInMinutes} मिनेट अघि`;
-                      }
-                      return `${diffInHours} घण्टा अघि`;
-                    } else {
-                      return `प्रकाशित: ${publishedDate.toLocaleDateString('en-CA')}`;
-                    }
-                  };
+
 
                   return (
                     <div key={newsItem.id} className="w-full">
@@ -112,26 +131,35 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
                       >
                         {/* Title and Meta Above Photo */}
                         <div className="mb-4 md:mb-6 text-center max-w-4xl mx-auto">
-                          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-3 text-gray-900 hover:text-blue-800 transition-colors">
+                          <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold leading-normal mb-3 text-gray-900 hover:text-blue-800 transition-colors line-clamp-3 leading-normal">
                             {newsItem.title}
                           </h2>
                           
-                          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <img 
-                                src={newsItem.journalistImage ? getImageUrl(newsItem.journalistImage) : khulashaLogo} 
-                                alt={newsItem.journalistName || "Khulasha Nepal"}
-                                className={newsItem.journalistImage ? "w-10 h-10 rounded-full border-2 border-gray-300 object-cover" : "w-6 h-6 object-contain"}
-                              />
-                              <span className="text-sm md:text-base">{newsItem.journalistName}</span>
-                            </div>
-                            <span className="text-gray-400">•</span>
-                            <div className="flex items-center gap-2">
-                              <Clock size={16} className="text-gray-500" />
-                              <span className="text-sm md:text-base">
-                                {getFormattedTime(newsItem.publishedDate)}
-                              </span>
-                            </div>
+                          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-gray-600 ">
+<div className="flex items-center gap-2">
+  <img
+    src={newsItem.journalistImage ? getImageUrl(newsItem.journalistImage) : khulashaLogo}
+    alt={newsItem.journalistName || "Khulasha Nepal"}
+    className={`
+      w-15 h-15 
+      rounded-full 
+      object-cover
+      border-4 border-blue-500/80
+      transition-all duration-300
+      hover:border-blue-600 
+      hover:scale-105
+      hover:shadow-[0_0_12px_2px_rgba(59,130,246,0.5)]
+    `}
+  />
+  <span className="text-base md:text-xl font-bold">{newsItem.journalistName}</span>
+</div>
+                            
+                        <div className="flex items-center gap-2">
+                          <Clock size={16} className="text-gray-500" />
+                          <span className="text-l font-bold md:text-base">
+                            {getTimeAgo(newsItem.publishedDate)}
+                          </span>
+                        </div>
                           </div>
                         </div>
                         
@@ -147,13 +175,18 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
                         {/* Subtitle and Highlight */}
                         <div className="space-y-3">
                           {newsItem.subtitle && (
-                            <h3 className="text-xl font-semibold text-gray-800">
+                            <h3 className="text-xl font-semibold text-gray-800 line-clamp-2">
                               {newsItem.subtitle}
                             </h3>
                           )}
                           {newsItem.paragraph && (
                             <p className="text-xl text-gray-700 line-clamp-2 leading-relaxed">
-                              {newsItem.paragraph.replace(/<[^>]*>/g, '').split('\n')[0]}
+                              {newsItem.paragraph
+                                .replace(/<[^>]*>/g, '')
+                                .replace(/&nbsp;/g, ' ')
+                                .trim()
+                                .split('\n')[0]
+                              }
                             </p>
                           )}
                         </div>
@@ -179,17 +212,10 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
                   <img src={getImageUrl(trending.image)} alt={trending.title} className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent " />
                   <div className="absolute bottom-8 left-8 text-white hover:text-blue-700">
-                    <h3 className="text-2xl font-bold mt-4 ">{trending.title}</h3>
+                    <h3 className="text-l font-bold mt-4 line-clamp-3 ">{trending.title}</h3>
                     <div className="flex items-center gap-4 mt-4">
-                      {trending.journalistImage && (
-                        <img 
-                          src={getImageUrl(trending.journalistImage)} 
-                          alt={trending.journalistName}
-                          className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                        />
-                      )}
-                      <span className="text-sm text-gray-200">द्वारा: {trending.journalistName}</span>
-                      <span className="text-sm text-gray-200">•</span>
+
+                      
                       <span className="text-sm text-gray-200">{getTimeAgo(trending.publishedDate)}</span>
                     </div>
                   </div>
@@ -211,7 +237,7 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
                   <img src={getImageUrl(cultureNews.image)} alt={cultureNews.title} className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent "></div>
                   <div className="absolute bottom-0 p-10 text-white">
-                    <h2 className="text-2xl font-bold leading-tight hover:text-blue-700">{cultureNews.title}</h2>
+                    <h2 className="text-2xl font-bold leading-normal line-clamp-2 hover:text-blue-700">{cultureNews.title}</h2>
                     <div className="flex items-center gap-4 mt-4">
                       {cultureNews.journalistImage && (
                         <img 
@@ -220,8 +246,7 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
                           className="w-10 h-10 rounded-full border-2 border-white object-cover"
                         />
                       )}
-                      <span className="text-sm text-gray-300">लेखक: {cultureNews.journalistName}</span>
-                      <span className="text-sm text-gray-300">•</span>
+                     
                       <span className="text-sm text-gray-300">{getTimeAgo(cultureNews.publishedDate)}</span>
                     </div>
                   </div>
@@ -246,12 +271,12 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-700 transition-colors text-sm mb-1">
+                            <h4 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-700 transition-colors text-m mb-1">
                               {item.title}
                             </h4>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span className="truncate">{item.journalistName}</span>
-                              <span>•</span>
+                              
+                           
                               <span>{getTimeAgo(item.publishedDate)}</span>
                             </div>
                           </div>
@@ -270,34 +295,10 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
 {/* Carousel Section */}
 {carouselNews.length > 0 && (
   <div className="mb-20">
-    <div className="mt-10 bg-gray-900 rounded-2xl overflow-hidden shadow-2xl">
-      <div className="relative h-96 overflow-hidden">
-        <img src={getImageUrl(carouselNews[currentSlide]?.image)} alt={carouselNews[currentSlide]?.title} className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
-        <div 
-          onClick={() => navigateToArticle(carouselNews[currentSlide])}
-          className="absolute bottom-10 left-10 text-white max-w-2xl cursor-pointer"
-        >
-          <h2 className="text-2xl font-bold leading-tight hover:text-blue-700">{carouselNews[currentSlide]?.title}</h2>
-          {carouselNews[currentSlide]?.subtitle && (
-            <p className="mt-5 text-xl">{carouselNews[currentSlide]?.subtitle}</p>
-          )}
-          <div className="flex items-center gap-4 mt-4">
-            {carouselNews[currentSlide]?.journalistImage && (
-              <img 
-                src={getImageUrl(carouselNews[currentSlide]?.journalistImage)} 
-                alt={carouselNews[currentSlide]?.journalistName}
-                className="w-10 h-10 rounded-full border-2 border-white object-cover"
-              />
-            )}
-            <span className="text-sm text-gray-300">रिपोर्ट: {carouselNews[currentSlide]?.journalistName}</span>
-            <span className="text-sm text-gray-300">•</span>
-            <span className="text-sm text-gray-300">{getTimeAgo(carouselNews[currentSlide]?.publishedDate)}</span>
-          </div>
-        </div>
-      </div>
-      <div className="bg-gray-100 p-10">
-        <h3 className="text-2xl font-bold mb-8 text-gray-800">थप रोचक सामग्री</h3>
+    <div className="mt-10 bg-white rounded-2xl overflow-hidden shadow-2xl">
+
+      <div className="bg-gray-100">
+        
         <div className="relative">
           <div className="overflow-hidden rounded-2xl">
             {/* Mobile view - show 1 item at a time */}
@@ -312,16 +313,10 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
                       <img src={getImageUrl(item.image)} alt={item.title} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent rounded-xl flex items-end p-6">
                         <div>
-                          <p className="text-white font-bold text-lg">{item.title}</p>
+                          <p className="text-white font-bold text-lg line-clamp-3 leading-normal md: text-m">{item.title}</p>
                           <div className="flex items-center gap-2 mt-2">
-                            {item.journalistImage && (
-                              <img 
-                                src={getImageUrl(item.journalistImage)} 
-                                alt={item.journalistName}
-                                className="w-6 h-6 rounded-full border border-white object-cover"
-                              />
-                            )}
-                            <p className="text-xs text-gray-300">{item.journalistName} • {getTimeAgo(item.publishedDate)}</p>
+
+                            <p className="text-xs text-gray-300"> {getTimeAgo(item.publishedDate)}</p>
                           </div>
                         </div>
                       </div>
@@ -341,19 +336,10 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
                       className="h-72 rounded-xl overflow-hidden shadow-lg hover:scale-105 transition-transform duration-300 cursor-pointer group relative"
                     >
                       <img src={getImageUrl(item.image)} alt={item.title} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent rounded-xl flex items-end p-6">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent rounded-xl flex items-end p-6 ">
                         <div>
-                          <p className="text-white font-bold text-lg line-clamp-2">{item.title}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {item.journalistImage && (
-                              <img 
-                                src={getImageUrl(item.journalistImage)} 
-                                alt={item.journalistName}
-                                className="w-6 h-6 rounded-full border border-white object-cover"
-                              />
-                            )}
-                            <p className="text-xs text-gray-300">{item.journalistName} • {getTimeAgo(item.publishedDate)}</p>
-                          </div>
+                          <p className="text-white font-bold text-s line-clamp-3">{item.title}</p>
+
                         </div>
                       </div>
                     </div>
@@ -385,7 +371,7 @@ const carouselNews = mainNewsData.slice(11);         // Items 11+ (remaining) - 
 
           {/* Dot indicators */}
           {carouselNews.length > 3 && (
-            <div className="flex justify-center gap-2 mt-6">
+            <div className="flex justify-center gap-2 mt-6 mb-6">
               {Array.from({ length: Math.max(0, carouselNews.length - 2) }).map((_, index) => (
                 <button
                   key={index}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
+import NepaliDate from 'nepali-date-converter';
 const MoreHome = ({ news = [] }) => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('list');
@@ -15,23 +15,55 @@ const MoreHome = ({ news = [] }) => {
     return image.startsWith('http') ? image : `http://localhost:5000${image}`;
   };
 
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const published = new Date(date);
-    const diffInMs = now - published;
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-    if (diffInDays === 0) {
-      if (diffInHours === 0) return 'भर्खरै';
-      return `${diffInHours} घण्टा अघि`;
-    }
-    if (diffInDays === 1) return '१ दिन अघि';
-    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
-    return `${Math.floor(diffInDays / 30)} महिना अघि`;
-  };
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
 
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('ne-NP', options);
@@ -125,20 +157,20 @@ const MoreHome = ({ news = [] }) => {
                       : 'p-4 sm:p-6'
                   }`}>
                     <div>
-                      <h4 className={`font-bold mb-2 sm:mb-3 lg:mb-4 hover:text-blue-900 transition ${
-                        viewMode === 'list' 
-                          ? 'text-base sm:text-2xl lg:text-3xl line-clamp-2' 
-                          : 'text-lg sm:text-xl line-clamp-2'
-                      }`}>
-                        {post.title}
-                      </h4>
-                      <p className={`text-gray-600 leading-relaxed ${
-                        viewMode === 'list' 
-                          ? 'text-xs sm:text-base lg:text-lg mb-2 sm:mb-4 lg:mb-6 line-clamp-2 sm:line-clamp-3' 
-                          : 'text-sm sm:text-base mb-3 sm:mb-4 line-clamp-2 sm:line-clamp-3'
-                      }`}>
-                        {post.subtitle || stripHtml(post.paragraph)?.substring(0, viewMode === 'list' ? 200 : 120) + '...' || ''}
-                      </p>
+<h4 className={`font-bold mb-2 sm:mb-3 lg:mb-4 hover:text-blue-900 transition overflow-hidden ${
+  viewMode === 'list' 
+    ? 'text-base sm:text-l lg:text-xl line-clamp-3' 
+    : 'text-lg sm:text-xl line-clamp-3'
+}`}>
+  {post.title}
+</h4>
+<p className={`text-gray-600 leading-relaxed overflow-hidden ${
+  viewMode === 'list' 
+    ? 'text-xs sm:text-base lg:text-lg mb-2 sm:mb-4 lg:mb-6 mt-2 sm:mt-3 lg:mt-4 line-clamp-2' 
+    : 'text-sm sm:text-base mb-3 sm:mb-4 mt-2 sm:mt-3 line-clamp-2'
+}`}>
+  {post.subtitle || stripHtml(post.paragraph)?.substring(0, viewMode === 'list' ? 200 : 120) + '...' || ''}
+</p>
                     </div>
                     
                     <div className={`flex flex-row sm:flex-row sm:items-center text-gray-500 gap-1 sm:gap-2 lg:gap-6 mt-auto ${
@@ -146,10 +178,7 @@ const MoreHome = ({ news = [] }) => {
                         ? 'text-xs sm:text-sm' 
                         : 'text-xs sm:text-sm'
                     }`}>
-                      <span className="flex items-center gap-1 sm:gap-2">
-                        <Calendar size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
-                        <span className="truncate text-xs sm:text-sm">{formatDate(post.publishedDate)}</span>
-                      </span>
+                 
                       <span className="flex items-center gap-1 sm:gap-2">
                         <Clock size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
                         <span className="text-xs sm:text-sm">{getTimeAgo(post.publishedDate)}</span>
@@ -160,17 +189,7 @@ const MoreHome = ({ news = [] }) => {
               ))}
             </div>
 
-            {/* Load More Button */}
-            {hasMore && (
-              <div className="mt-8 sm:mt-12 text-center">
-                <button
-                  onClick={() => setDisplayCount(prev => prev + 12)}
-                  className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
-                >
-                  थप समाचार हेर्नुहोस् ({articles.length - displayCount} बाँकी)
-                </button>
-              </div>
-            )}
+
           </main>
 
           {/* Right Sidebar - Responsive */}
@@ -220,7 +239,7 @@ const MoreHome = ({ news = [] }) => {
                           alt={post.title}
                           className="w-20 h-16 sm:w-24 sm:h-20 object-cover rounded-lg sm:rounded-xl flex-shrink-0"
                         />
-                        <p className="font-medium text-sm sm:text-base hover:text-blue-900 transition line-clamp-2 flex-1 min-w-0">
+                        <p className="font-medium text-sm sm:text-base hover:text-blue-900 transition line-clamp-4 flex-1 min-w-0">
                           {post.title}
                         </p>
                       </div>

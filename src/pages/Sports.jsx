@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Clock, Calendar, User, ArrowRight, ChevronLeft, ChevronRight, TrendingUp, Flame } from 'lucide-react';
 import khulashaLogo from '../assets/image/khulashalogo.png';
+import NepaliDate from 'nepali-date-converter';
 const Sports = () => {
   const navigate = useNavigate();
   const [sportsList, setSportsList] = useState([]);
@@ -14,21 +15,21 @@ const Sports = () => {
     fetchSports();
   }, []);
 
-const fetchSports = async () => {
-  try {
-    setLoading(true);
-    const response = await fetch('http://localhost:5000/api/news/category/sports');
-    if (!response.ok) throw new Error('Failed to fetch sports articles');
-    const data = await response.json();
-    
-    // Extract array from API response
-    const articles = data.success && Array.isArray(data.data) 
-      ? data.data 
-      : Array.isArray(data) 
-        ? data 
-        : [];
-    
-    setSportsList(articles);
+  const fetchSports = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/news/category/sports');
+      if (!response.ok) throw new Error('Failed to fetch sports articles');
+      const data = await response.json();
+      
+      // Extract array from API response
+      const articles = data.success && Array.isArray(data.data) 
+        ? data.data 
+        : Array.isArray(data) 
+          ? data 
+          : [];
+      
+      setSportsList(articles);
     } catch (err) {
       setError(err.message);
       console.error('Error fetching sports:', err);
@@ -37,17 +38,55 @@ const fetchSports = async () => {
     }
   };
 
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const published = new Date(date);
-    const diffInMs = now - published;
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-    if (diffInHours < 24) return `${diffInHours} घण्टा अगाडि`;
-    if (diffInDays === 1) return '१ दिन अगाडि';
-    return `${diffInDays} दिन अगाडि`;
-  };
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
+
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
 
   const handleArticleClick = (id) => {
     navigate(`/sports/${id}`);
@@ -66,108 +105,112 @@ const fetchSports = async () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-<div className="max-w-7xl mx-auto px-4 py-8">
-     <div className="max-w-7xl">
-        {/* Title and Date Above */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 text-gray-900">
-            {loading ? (
-              <div className="animate-pulse h-12 bg-gray-200 rounded w-3/4 mx-auto"></div>
-            ) : sportsList.length === 0 ? (
-              "खेलकुद समाचार"
-            ) : (
-              sportsList[0].title
-            )}
-          </h1>
-          {!loading && sportsList.length > 0 && (
-            <p className="text-sm md:text-base text-gray-600">
-              {new Date(sportsList[0].publishedDate).toLocaleDateString('ne-NP')}
-            </p>
-          )}
-        </div>
+      {/* Hero Section - Only on Page 1 */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {currentPage === 1 && (
+          <div className="max-w-7xl">
+            {/* Title and Date Above */}
+            <div className="text-center mb-6">
+              <h1 className="text-3xl md:text-3xl lg:text-4xl font-bold mb-2 text-gray-900 line-clamp-2 leading-snug">
+                {loading ? (
+                  <div className="animate-pulse h-12 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                ) : sportsList.length === 0 ? (
+                  "खेलकुद समाचार"
+                ) : (
+                  sportsList[0].title
+                )}
+              </h1>
 
-        {/* Image */}
-        <div className="relative w-full h-[400px] md:h-[500px] overflow-hidden rounded-2xl shadow-2xl mb-6">
-          {loading || sportsList.length === 0 ? (
-            <div
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-              style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1600&h=900&fit=crop')",
-              }}
-            />
-          ) : (
-            <div
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat cursor-pointer"
-              style={{
-                backgroundImage: `url('http://localhost:5000${sportsList[0].image}')`,
-              }}
-              onClick={() => navigate(`/sports/${sportsList[0].id}`)}
-            />
-          )}
-        </div>
-
-        {/* Meta Information Below Image */}
-        {!loading && sportsList.length > 0 && (
-          <div className="mb-6">
-            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-gray-600 mb-6">
-              {sportsList[0].journalistName && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={sportsList[0].journalistImage 
-                        ? `http://localhost:5000${sportsList[0].journalistImage}`
-                        : khulashaLogo
-                      }
-                      alt={sportsList[0].journalistName || "Khulasha Nepal"}
-                      className={sportsList[0].journalistImage 
-                        ? "w-10 h-10 rounded-full object-cover border-2 border-gray-300" 
-                        : "w-6 h-6 object-contain"
-                      }
-                    />
-                    <span className="text-sm md:text-base">{sportsList[0].journalistName}</span>
-                  </div>
-                  <span className="text-gray-400">•</span>
-                </>
-              )}
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm md:text-base">{getTimeAgo(sportsList[0].publishedDate)}</span>
-              </div>
             </div>
 
-            {/* Title */}
-            <h2 
-              className="text-2xl md:text-3xl font-bold mb-4 text-gray-900 text-center cursor-pointer hover:text-blue-900 transition-colors"
-              onClick={() => navigate(`/sports/${sportsList[0].id}`)}
-            >
-              {sportsList[0].title}
-            </h2>
 
-            {/* Subtitle/Description */}
-            {sportsList[0].subtitle && (
-              <p className="text-lg text-gray-700 text-center max-w-3xl mx-auto line-clamp-1">
-                {sportsList[0].subtitle}
-              </p>
+
+            {/* Meta Information Below Image */}
+            {!loading && sportsList.length > 0 && (
+              <div className="mb-6">
+                <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-gray-600 mb-6">
+                  {sportsList[0].journalistName && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={sportsList[0].journalistImage 
+                            ? `http://localhost:5000${sportsList[0].journalistImage}`
+                            : khulashaLogo
+                          }
+                          alt={sportsList[0].journalistName || "Khulasha Nepal"}
+                          className={`
+                            w-16 h-16               
+                            rounded-full 
+                            object-cover
+                            ring-4 ring-blue-500/70 
+                            ring-offset-2 ring-offset-white    
+                            transition-all duration-250
+                            hover:ring-blue-600
+                            hover:ring-offset-blue-100
+                            hover:scale-105
+                            `}
+                        />
+                        <span className="text-sm md:text-base">{sportsList[0].journalistName}</span>
+                      </div>
+                    
+                    </>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm md:text-base">{getTimeAgo(sportsList[0].publishedDate)}</span>
+                  </div>
+                </div>
+                              {/* Image */}
+            <div className="relative w-full h-[400px] md:h-[500px] overflow-hidden rounded-2xl shadow-2xl mb-6">
+              {loading || sportsList.length === 0 ? (
+                
+                <div
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat"  
+                />
+                
+               
+              ) : (
+                <div
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat cursor-pointer"
+                  style={{
+                    backgroundImage: `url('http://localhost:5000${sportsList[0].image}')`,
+                  }}
+                  onClick={() => navigate(`/sports/${sportsList[0].id}`)}
+                />
+              )}
+            </div>
+
+                  
+                {/* Subtitle/Description */}
+                {sportsList[0].subtitle && (
+                  <p className="text-lg text-gray-700 text-center max-w-3xl mx-auto line-clamp-1">
+                    {sportsList[0].subtitle}
+                  </p>
+                  
+                )}
+                  {/* {sportsList[0].subtitle && (
+                  <p className="text-lg text-gray-700 text-center max-w-3xl mx-auto line-clamp-1">
+                    {sportsList[0].subtitle}
+                  </p>
+                  
+                )} */}
+              </div>
+            )}
+
+            {loading && (
+              <div className="animate-pulse space-y-4">
+                <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+              </div>
+            )}
+
+            {!loading && sportsList.length === 0 && (
+              <p className="text-lg text-gray-600 text-center">कुनै समाचार उपलब्ध छैन</p>
             )}
           </div>
         )}
-
-        {loading && (
-          <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-          </div>
-        )}
-
-        {!loading && sportsList.length === 0 && (
-          <p className="text-lg text-gray-600 text-center">कुनै समाचार उपलब्ध छैन</p>
-        )}
-      </div>
- 
-
-      {/* Main Content */}
-   
+        
+        {/* Main Content */}
         {loading && (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600" />
@@ -188,17 +231,15 @@ const fetchSports = async () => {
 
         {!loading && !error && currentSports.length > 0 && (
           <>
-            {/* Featured Article (Second Item) */}
-{currentPage === 1 && currentSports[1] && (
+            {/* Featured Article (Second Item) - Only on Page 1 */}
+            {currentPage === 1 && currentSports[1] && (
               <div className="mb-16">
                 {/* Title and Date Above */}
                 <div className="text-center mb-6">
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 text-gray-900">
+                  <h2 className="text-3xl leading-normal line-clamp-1 md:text-3xl lg:text-3xl font-bold mb-2 text-gray-900 ">
                     {currentSports[1].title}
                   </h2>
-                  <p className="text-sm md:text-base text-gray-600">
-                    {new Date(currentSports[1].publishedDate).toLocaleDateString('ne-NP')}
-                  </p>
+
                 </div>
 
                 {/* Image */}
@@ -228,13 +269,13 @@ const fetchSports = async () => {
                             }
                             alt={currentSports[1].journalistName || "Khulasha Nepal"}
                             className={currentSports[1].journalistImage 
-                              ? "w-10 h-10 rounded-full object-cover border-2 border-gray-300" 
-                              : "w-6 h-6 object-contain"
+                           ? "w-15 h-15 rounded-full object-cover border-4 border-blue-500 hover:border-blue-600 hover:scale-110 transition-all duration-200 shadow-sm hover:shadow-blue-500/40" 
+                            : "w-12 h-12 rounded-full object-contain border-4 border-blue-500 hover:border-blue-600 hover:scale-110 transition-all duration-200 shadow-sm hover:shadow-blue-500/40"
                             }
                           />
                           <span className="text-sm md:text-base">{currentSports[1].journalistName}</span>
                         </div>
-                        <span className="text-gray-400">•</span>
+                        
                       </>
                     )}
                     <div className="flex items-center gap-2">
@@ -248,7 +289,7 @@ const fetchSports = async () => {
                     className="text-2xl md:text-3xl font-bold mb-4 text-gray-900 text-center cursor-pointer hover:text-blue-900 transition-colors"
                     onClick={() => handleArticleClick(currentSports[1].id)}
                   >
-                    {currentSports[1].title}
+                    {currentSports[1].subtitle}
                   </h3>
 
                   {/* Subtitle/Description */}
@@ -282,8 +323,6 @@ const fetchSports = async () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    
-       
 
                     <div className="absolute top-4 right-4 flex items-center gap-1 bg-black/70 px-2 py-1 rounded text-xs text-white">
                       <Clock className="w-3 h-3" />
@@ -302,28 +341,26 @@ const fetchSports = async () => {
                       </p>
                     )}
 
-<div className="flex items-center justify-between pt-4 border-t border-gray-100">
-  <div className="flex items-center gap-2">
-    <img
-      src={sports.journalistImage 
-        ? `http://localhost:5000${sports.journalistImage}`
-        : khulashaLogo
-      }
-      alt={sports.journalistName || "Khulasha Nepal"}
-      className={sports.journalistImage 
-        ? "w-8 h-8 rounded-full object-cover border border-gray-200" 
-        : "w-8 h-8 object-contain"
-      }
-    />
-    <span className="text-sm font-medium text-gray-700">
-      {sports.journalistName || 'अज्ञात'}
-    </span>
-  </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={sports.journalistImage 
+                            ? `http://localhost:5000${sports.journalistImage}`
+                            : khulashaLogo
+                          }
+                          alt={sports.journalistName || "Khulasha Nepal"}
+                          className={sports.journalistImage 
+                            ? "w-10 h-10 rounded-full object-cover border border-blue-600 border-3" 
+                            : "w-12 h-12 object-contain rounded-full object-contain border border-blue-600 border-3 "
+                          }
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          {sports.journalistName || 'अज्ञात'}
+                        </span>
+                      </div>
 
-  <span className="text-sm font-medium text-gray-600">
-    खेलकुद समाचार
-  </span>
-</div>
+                        
+                    </div>
                   </div>
                 </article>
               ))}
@@ -349,7 +386,7 @@ const fetchSports = async () => {
                       className={`w-12 h-12 rounded-lg font-semibold transition ${
                         currentPage === page
                           ? 'bg-blue-600 text-white shadow-lg'
-                          : 'border-2 border-gray-300 hover:bg-gray-100 text-gray-700'
+                          : 'border-2 border-gray-300 hover:bg-gray-100 text-gray-700 '
                       }`}
                     >
                       {page}

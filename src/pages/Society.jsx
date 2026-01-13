@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
+import NepaliDate from 'nepali-date-converter';
+
+// Helper function to convert numbers to Nepali
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
 
 // Helper function to strip HTML tags
 const stripHtml = (html) => {
@@ -10,6 +17,65 @@ const stripHtml = (html) => {
   return tmp.textContent || tmp.innerText || '';
 };
 
+// Pagination Controls Component
+const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex justify-center items-center gap-2 mt-12 mb-8">
+      <button
+        onClick={() => {
+          if (currentPage > 1) {
+            onPageChange(currentPage - 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        className="w-10 h-10 bg-white shadow-md rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={currentPage === 1}
+        aria-label="Previous page"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+        <button
+          key={pageNum}
+          onClick={() => {
+            onPageChange(pageNum);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`w-10 h-10 rounded-lg font-semibold transition ${
+            pageNum === currentPage
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm'
+          }`}
+          aria-label={`Go to page ${pageNum}`}
+        >
+          {pageNum}
+        </button>
+      ))}
+      
+      <button
+        onClick={() => {
+          if (currentPage < totalPages) {
+            onPageChange(currentPage + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        className="w-10 h-10 bg-white shadow-md rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={currentPage === totalPages}
+        aria-label="Next page"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  );
+};
+
 function Society() {
   const navigate = useNavigate();
   const [societyData, setSocietyData] = useState([]);
@@ -17,6 +83,54 @@ function Society() {
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [slidesToShow, setSlidesToShow] = useState(3);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 19; // 1 hero + 3 featured + 5 small + 5 politics + 5 carousel
+
+  // Get time ago in Nepali
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
 
   useEffect(() => {
     fetchSocietyData();
@@ -40,7 +154,12 @@ function Society() {
           ? response.data 
           : [];
       
-      setSocietyData(articles);
+      // Sort by date (newest first)
+      const sortedArticles = articles.sort((a, b) => 
+        new Date(b.publishedDate) - new Date(a.publishedDate)
+      );
+      
+      setSocietyData(sortedArticles);
       setError(null);
     } catch (err) {
       setError('Failed to load society articles');
@@ -56,19 +175,22 @@ function Society() {
   };
 
   const prevSlide = () => {
-    const carouselData = societyData.slice(13);
-    const maxIndex = Math.max(0, carouselData.length - slidesToShow);
+    const maxIndex = Math.max(0, carouselImages.length - slidesToShow);
     setCurrentIndex((prev) => (prev === 0 ? maxIndex : prev - 1));
   };
 
   const nextSlide = () => {
-    const carouselData = societyData.slice(13);
-    const maxIndex = Math.max(0, carouselData.length - slidesToShow);
+    const maxIndex = Math.max(0, carouselImages.length - slidesToShow);
     setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
   };
 
   const handleCardClick = (id) => {
     navigate(`/society/${id}`);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    setCurrentIndex(0);
   };
 
   if (loading) {
@@ -98,12 +220,17 @@ function Society() {
     );
   }
 
+  // Calculate pagination
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedData = societyData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(societyData.length / ITEMS_PER_PAGE);
+
   // Divide data into sections without repeating
-  const heroStory = societyData.length > 0 ? societyData[0] : null;
-  const featuredStories = societyData.slice(1, 4); // Articles 1-3
-  const smallCards = societyData.slice(4, 9); // Articles 4-8
-  const politicsStories = societyData.slice(9, 14); // Articles 9-13
-  const carouselImages = societyData.slice(14); // Articles 14+
+  const heroStory = paginatedData.length > 0 ? paginatedData[0] : null;
+  const featuredStories = paginatedData.slice(1, 4); // Articles 1-3
+  const smallCards = paginatedData.slice(4, 9); // Articles 4-8
+  const politicsStories = paginatedData.slice(9, 14); // Articles 9-13
+  const carouselImages = paginatedData.slice(14); // Articles 14+
 
   return (
     <div className="bg-white min-h-screen">
@@ -118,7 +245,7 @@ function Society() {
                 className="cursor-pointer"
               >
                 <div className="mb-4 md:mb-6 text-center max-w-4xl mx-auto">
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-3 text-gray-900 hover:text-blue-900 transition-colors">
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-normal line-clamp-2 mb-3 text-gray-900 hover:text-blue-900 transition-colors">
                     {stripHtml(heroStory.title)}
                   </h2>
                   
@@ -130,12 +257,12 @@ function Society() {
                             <img 
                               src={getImageUrl(heroStory.journalistImage)} 
                               alt={heroStory.journalistName}
-                              className="w-10 h-10 rounded-full border-2 border-gray-300 object-cover"
+                              className="w-12 h-12 rounded-full object-cover border border-blue-600 border-3" 
                             />
                           )}
-                          <span className="text-sm md:text-base">{heroStory.journalistName}</span>
+                          <span className="text-sm font-bold md:text-base">{heroStory.journalistName}</span>
                         </div>
-                        <span className="text-gray-400">•</span>
+                     
                       </>
                     )}
                     {heroStory.publishedDate && (
@@ -144,12 +271,8 @@ function Society() {
                           <circle cx="12" cy="12" r="10" strokeWidth="2"/>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
                         </svg>
-                        <span className="text-sm md:text-base">
-                          {new Date(heroStory.publishedDate).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                        <span className="text-sm font-bold md:text-base">
+                          {getTimeAgo(heroStory.publishedDate)}
                         </span>
                       </div>
                     )}
@@ -191,9 +314,7 @@ function Society() {
                 onClick={() => handleCardClick(story.id)}
                 className="group cursor-pointer transition-all duration-300 hover:shadow-xl rounded-lg"
               >
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 leading-tight transition-colors group-hover:text-blue-600 line-clamp-1">
-                  {stripHtml(story.title)}
-                </h3>
+
                 <div className="relative overflow-hidden rounded-lg mb-3">
                   <img
                     src={getImageUrl(story.image)}
@@ -201,8 +322,11 @@ function Society() {
                     className="w-full h-56 md:h-72 object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                 </div>
-                <p className="text-xl text-gray-600 line-clamp-1">
-                  {stripHtml(story.subtitle || story.paragraph?.substring(0, 150) || '')}
+                <h3 className="text-l md:text-xl font-bold text-gray-900 mb-3 leading-normal transition-colors group-hover:text-blue-600 line-clamp-3 ">
+                  {stripHtml(story.title)}
+                </h3>
+                <p className="text-l leading-normal line-clamp-2">
+                  {stripHtml(story.subtitle || story.paragraph || '').substring(0, 150) || ''}
                 </p>
               </div>
             ))}
@@ -212,9 +336,7 @@ function Society() {
         {/* Diverse Small Cards */}
         {smallCards.length > 0 && (
           <div className="mb-12 md:mb-16">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 md:mb-6 pb-3 border-b border-gray-300">
-              DIVERSE
-            </h3>
+
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
               {smallCards.map(card => (
                 <div
@@ -232,9 +354,7 @@ function Society() {
                   <h4 className="text-sm md:text-base font-bold text-gray-900 leading-tight mb-1 transition-colors group-hover:text-blue-900 line-clamp-2">
                     {stripHtml(card.title)}
                   </h4>
-                  <p className="text-xs text-gray-600 line-clamp-2">
-                    {stripHtml(card.subtitle || card.paragraph?.substring(0, 100) + '...' || '')}
-                  </p>
+
                 </div>
               ))}
             </div>
@@ -257,11 +377,7 @@ function Society() {
                 </h2>
                 {politicsStories[0].publishedDate && (
                   <p className="text-sm text-gray-500 mb-4 md:mb-6">
-                    {new Date(politicsStories[0].publishedDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {getTimeAgo(politicsStories[0].publishedDate)}
                   </p>
                 )}
                 <div className="overflow-hidden rounded-xl mb-4 md:mb-6">
@@ -271,25 +387,27 @@ function Society() {
                     className="w-full h-64 md:h-[500px] object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
-                <p className="text-base md:text-2xl text-gray-600 line-clamp-3 md:line-clamp-4">
-                  {stripHtml(politicsStories[0].subtitle || politicsStories[0].paragraph?.substring(0, 300) + '...' || '')}
+                <p className="text-base md:text-2xl text-gray-600 line-clamp-2 md:line-clamp-2">
+                  {stripHtml(politicsStories[0].subtitle || politicsStories[0].paragraph || '').substring(0, 300)}
                 </p>
               </div>
 
-              <div className="space-y-6 md:space-y-8">
+              <div className="space-y-6 md:space-y-8 ">
                 {politicsStories.slice(1).map(story => (
                   <div 
                     key={story.id} 
                     onClick={() => handleCardClick(story.id)}
-                    className="group cursor-pointer flex gap-3 md:gap-4 border-b border-gray-200 pb-6 last:border-0 last:pb-0 transition-all hover:translate-x-1 active:scale-95"
+                    className="group cursor-pointer flex gap-3  md:gap-4 border-b border-gray-200 pb-6 last:border-0 last:pb-0 transition-all hover:translate-x-1 active:scale-95"
                   >
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-base md:text-lg font-bold text-gray-900 leading-tight transition-colors group-hover:text-blue-900 line-clamp-2 mb-2">
+                      <h4 className="text-base line-clamp-1 leading-normal md:text-l font-bold text-gray-900  transition-colors group-hover:text-blue-900  mb-2">
                         {stripHtml(story.title)}
                       </h4>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {stripHtml(story.subtitle || story.paragraph || 'Read more about this story...')}
-                      </p>
+                      {(story.subtitle || story.paragraph) && (
+                        <p className="text-sm text-gray-600 line-clamp-4 leading-normal">
+                          {stripHtml(story.subtitle || story.paragraph || '')}
+                        </p>
+                      )}
                     </div>
                     <div className="overflow-hidden rounded-lg flex-shrink-0">
                       <img
@@ -308,9 +426,7 @@ function Society() {
         {/* Featured Gallery Carousel */}
         {carouselImages.length > 0 && (
           <div className="mb-12 md:mb-16">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-6 md:mb-8 pb-3 border-b border-gray-300">
-              FEATURED GALLERY
-            </h3>
+
 
             <div className="relative group">
               <div className="overflow-hidden rounded-xl shadow-lg">
@@ -334,7 +450,8 @@ function Society() {
                         />
 
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 md:p-8 pt-16 md:pt-20">
-                          <h3 className="text-xl md:text-3xl font-bold text-white leading-tight drop-shadow-lg line-clamp-2 hover:text-blue-900">
+                          <h3 className="text-xl md:text-lg font-bold text-white leading-snug line-clamp-2 hover:text-blue-900 transition">
+
                             {stripHtml(image.title)}
                           </h3>
                         </div>
@@ -387,6 +504,13 @@ function Society() {
             </div>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        <PaginationControls 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
 
         {/* Empty State */}
         {societyData.length === 0 && !loading && (

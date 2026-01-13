@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Clock } from 'lucide-react';
-
+import NepaliDate from 'nepali-date-converter';
 const SportsHome = ({ news = [] }) => {
   const navigate = useNavigate();
-  const [displayCount, setDisplayCount] = useState(9); // 1 featured + 4 grid + 4 sidebar
+  const [displayCount, setDisplayCount] = useState(9); 
   
   const sportsList = news;
   const hasMore = displayCount < sportsList.length;
@@ -29,22 +29,56 @@ const SportsHome = ({ news = [] }) => {
     return cleaned;
   };
 
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const published = new Date(date);
-    const diffInMs = now - published;
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-    if (diffInDays === 0) {
-      if (diffInHours === 0) return 'भर्खरै';
-      return `${diffInHours} घण्टा अघि`;
-    }
-    if (diffInDays === 1) return '१ दिन अघि';
-    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
-    return `${Math.floor(diffInDays / 30)} महिना अघि`;
-  };
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
+
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
+
 
   // Get displayed items based on displayCount
   const displayedSports = sportsList.slice(0, displayCount);
@@ -108,10 +142,10 @@ const SportsHome = ({ news = [] }) => {
                 <div className="absolute inset-y-0 right-0 w-2/5 bg-gradient-to-l from-black/80 via-black/50 to-transparent" />
                 
                 <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10 text-white">
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4 drop-shadow-2xl group-hover:text-blue-400 transition-colors">
+                  <h2 className="text-2xl md:text-4xl lg:text-2xl font-bold leading-normal mb-4 drop-shadow-2xl group-hover:text-blue-400 transition-colors">
                     {featuredArticle.title}
                   </h2>
-                  <p className="text-lg md:text-xl text-gray-100 line-clamp-2 mb-4 drop-shadow-lg">
+                  <p className="text-sm md:text-xl text-gray-100 line-clamp-1 mb-4 drop-shadow-lg">
                     {getCleanText(featuredArticle.subtitle || featuredArticle.paragraph, 150)}
                   </p>
                   <div className="flex items-center gap-2 text-sm opacity-90">
@@ -138,11 +172,7 @@ const SportsHome = ({ news = [] }) => {
                         alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                      {item.category && (
-                        <span className="absolute top-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                          {item.category}
-                        </span>
-                      )}
+
                     </div>
 
                     {/* Content Section */}
@@ -192,17 +222,7 @@ const SportsHome = ({ news = [] }) => {
           </div>
         </div>
 
-        {/* Load More Button */}
-        {hasMore && (
-          <div className="mt-10 text-center">
-            <button
-              onClick={() => setDisplayCount(prev => prev + 8)}
-              className="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
-            >
-              थप खेलकुद समाचार हेर्नुहोस् ({sportsList.length - displayCount} बाँकी)
-            </button>
-          </div>
-        )}
+
       </div>
     </div>
   );

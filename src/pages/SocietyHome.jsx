@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
+import NepaliDate from 'nepali-date-converter';
 const SocietyHome = ({ news = [] }) => {
   const navigate = useNavigate();
   const [displayCount, setDisplayCount] = useState(7);
@@ -14,23 +14,55 @@ const SocietyHome = ({ news = [] }) => {
     return image.startsWith('http') ? image : `http://localhost:5000${image}`;
   };
 
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const publishedDate = new Date(date);
-    const diffInMs = now - publishedDate;
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) {
-      if (diffInHours === 0) return 'भर्खरै';
-      return `${diffInHours} घण्टा अघि`;
-    }
-    if (diffInDays === 1) return '१ दिन अघि';
-    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
-    return `${Math.floor(diffInDays / 30)} महिना अघि`;
-  };
 
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
+
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
   const stripHtml = (html) => {
     if (!html) return '';
     const tmp = document.createElement('div');
@@ -68,9 +100,9 @@ const SocietyHome = ({ news = [] }) => {
           </h1>
           <button 
             onClick={() => navigate('/society')}
-            className="text-purple-600 font-medium flex items-center gap-2 hover:gap-4 transition-all"
+            className="text-blue-600 font-medium flex items-center gap-2 hover:gap-4 transition-all"
           >
-            थप हेर्नुहोस् <ChevronRight size={24} />
+            थप समाचार हेर्नुहोस् <ChevronRight size={24} />
           </button>
         </div>
 
@@ -81,11 +113,11 @@ const SocietyHome = ({ news = [] }) => {
             className="group cursor-pointer mb-12 bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500"
           >
             <div className="p-8 md:p-12 pb-6">
-              <h2 className="text-4xl md:text-6xl font-bold leading-tight text-gray-900 group-hover:text-blue-900 transition-colors">
+              <h2 className="text-4xl md:text-4xl font-bold leading-normal text-gray-900 group-hover:text-blue-900 transition-colors">
                 {featuredArticle.title}
               </h2>
               <div className="flex items-center gap-4 mt-4">
-                <span className="text-sm text-gray-400">•</span>
+                
                 <span className="text-sm text-gray-600">
                   {getTimeAgo(featuredArticle.publishedDate)}
                 </span>
@@ -130,7 +162,7 @@ const SocietyHome = ({ news = [] }) => {
                     {item.title}
                   </h3>
                   
-                  <p className="text-base md:text-lg text-gray-600 line-clamp-3">
+                  <p className="text-base md:text-lg text-gray-600 line-clamp-2">
                     {getExcerpt(item)}
                   </p>
 

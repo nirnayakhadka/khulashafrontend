@@ -1,47 +1,172 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, User, Clock } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import khulashaLogo from '../assets/image/khulashalogo.png';
+import NepaliDate from 'nepali-date-converter';
+
+// Helper function to convert numbers to Nepali
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
+
+// Pagination Controls Component
+const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex justify-center items-center gap-2 mt-12 mb-8">
+      <button
+        onClick={() => {
+          if (currentPage > 1) {
+            onPageChange(currentPage - 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        className="w-10 h-10 bg-white shadow-md rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={currentPage === 1}
+        aria-label="Previous page"
+      >
+        <ChevronLeft size={20} />
+      </button>
+      
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+        <button
+          key={pageNum}
+          onClick={() => {
+            onPageChange(pageNum);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`w-10 h-10 rounded-lg font-semibold transition ${
+            pageNum === currentPage
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm'
+          }`}
+          aria-label={`Go to page ${pageNum}`}
+        >
+          {pageNum}
+        </button>
+      ))}
+      
+      <button
+        onClick={() => {
+          if (currentPage < totalPages) {
+            onPageChange(currentPage + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        className="w-10 h-10 bg-white shadow-md rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={currentPage === totalPages}
+        aria-label="Next page"
+      >
+        <ChevronRight size={20} />
+      </button>
+    </div>
+  );
+};
+
 const More = () => {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 14; // 5 carousel + 9 grid articles per page
+
+  // Get time ago in Nepali
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
 
   useEffect(() => {
     fetchArticles();
   }, []);
 
-const fetchArticles = async () => {
-  try {
-    setLoading(true);
-    const response = await axiosInstance.get('/news/category/more');
-    
-    // Extract array from API response
-    const articles = response.data.success && Array.isArray(response.data.data) 
-      ? response.data.data 
-      : Array.isArray(response.data) 
-        ? response.data 
-        : [];
-    
-    setArticles(articles);
-  } catch (error) {
-    console.error('Error fetching articles:', error);
-    setArticles([]); // Set empty array on error
-  } finally {
-    setLoading(false);
-  }
-};
-  const carouselCards = articles.slice(0, 5).map((article) => ({
+  const fetchArticles = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/news/category/more');
+      
+      const articles = response.data.success && Array.isArray(response.data.data) 
+        ? response.data.data 
+        : Array.isArray(response.data) 
+          ? response.data 
+          : [];
+      
+      // Sort by date (newest first)
+      const sortedArticles = articles.sort((a, b) => 
+        new Date(b.publishedDate) - new Date(a.publishedDate)
+      );
+      
+      setArticles(sortedArticles);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      setArticles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate pagination
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedArticles = articles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(articles.length / ITEMS_PER_PAGE);
+
+  // Only show carousel on first page
+  const showCarousel = currentPage === 1;
+  const carouselCards = showCarousel ? paginatedArticles.slice(0, 5).map((article) => ({
     id: article.id,
     image: article.image ? `http://localhost:5000${article.image}` : "https://images.unsplash.com/photo-1523995462485-3d171b5c8fa9?w=800&q=80",
     title: article.title,
     category: article.subtitle || "समाचार",
     date: article.publishedDate,
     journalist: article.journalistName
-  }));
+  })) : [];
+
+  const gridArticles = showCarousel ? paginatedArticles.slice(5) : paginatedArticles;
 
   const nextSlide = () => {
     if (isAnimating || carouselCards.length === 0) return;
@@ -78,9 +203,9 @@ const fetchArticles = async () => {
     navigate(`/more/${articleId}`);
   };
 
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('ne-NP', options);
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    setCurrentSlide(0);
   };
 
   if (loading) {
@@ -97,13 +222,18 @@ const fetchArticles = async () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-12">
-        <h2 className="text-4xl font-bold text-slate-800 mb-4 text-center">ताजा समाचार</h2>
-        <p className="text-center text-slate-600 mb-12 max-w-2xl mx-auto">
-          देश विदेशका भरपर्दो र तथ्यपरक समाचार
-        </p>
+        {/* Only show header on first page */}
+        {currentPage === 1 && (
+          <>
+            <h2 className="text-4xl font-bold text-slate-800 mb-4 text-center">ताजा समाचार</h2>
+            <p className="text-center text-slate-600 mb-12 max-w-2xl mx-auto">
+              देश विदेशका भरपर्दो र तथ्यपरक समाचार
+            </p>
+          </>
+        )}
         
         {/* 3D Carousel Section */}
-{carouselCards.length > 0 && (
+        {carouselCards.length > 0 && (
           <div className="relative h-[500px] mb-16">
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="relative w-full h-full flex items-center justify-center" style={{ perspective: '1200px' }}>
@@ -145,16 +275,10 @@ const fetchArticles = async () => {
                         <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                           <h3 className="text-2xl font-bold mb-2 line-clamp-2">{card.title}</h3>
                           <div className="flex items-center gap-4 text-sm text-white/80">
-                            {card.journalist && (
-                              <div className="flex items-center gap-1">
-                                <User size={14} />
-                                <span>{card.journalist}</span>
-                              </div>
-                            )}
                             {card.date && (
-                              <div className="flex items-center gap-1">
-                                <Calendar size={14} />
-                                <span>{formatDate(card.date)}</span>
+                              <div className="flex items-center gap-1 mx-auto">
+                                <Clock size={14} />
+                                <span>{getTimeAgo(card.date)}</span>
                               </div>
                             )}
                           </div>
@@ -207,13 +331,14 @@ const fetchArticles = async () => {
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">सबै लेखहरू</h2>
           
-          {articles.length > 0 ? (
+          {gridArticles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {articles.map((article) => (
+              {gridArticles.map((article) => (
                 <ArticleCard 
                   key={article.id} 
                   article={article} 
                   onClick={() => handleCardClick(article.id)}
+                  getTimeAgo={getTimeAgo}
                 />
               ))}
             </div>
@@ -229,19 +354,21 @@ const fetchArticles = async () => {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        <PaginationControls 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
     </div>
   );
 };
 
 // Article Card Component
-const ArticleCard = ({ article, onClick }) => {
+const ArticleCard = ({ article, onClick, getTimeAgo }) => {
   const [isHovered, setIsHovered] = useState(false);
-
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('ne-NP', options);
-  };
 
   const stripHtml = (html) => {
     const temp = document.createElement('div');
@@ -266,41 +393,39 @@ const ArticleCard = ({ article, onClick }) => {
             transform: isHovered ? 'scale(1.1)' : 'scale(1)'
           }}
         />
-      
-
       </div>
 
       {/* Content */}
       <div className="p-6">
-        <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 leading-tight">
+        <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-1 leading-normal">
           {article.title}
         </h3>
         
         {article.paragraph && (
-          <p className="text-slate-600 text-sm mb-4 line-clamp-3">
+          <p className="text-slate-600 text-sm mb-4 line-clamp-1">
             {stripHtml(article.paragraph)}
           </p>
         )}
 
         {/* Meta Info */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-        <div className="flex items-center gap-2">
-          <img
-            src={article.journalistImage 
-              ? `http://localhost:5000${article.journalistImage}`
-              : khulashaLogo
-            }
-            alt={article.journalistName || "Khulasha Nepal"}
-            className={article.journalistImage 
-              ? "w-8 h-8 rounded-full object-cover border-2 border-blue-500" 
-              : "w-8 h-8 object-contain"
-            }
-          />
-          <span className="text-sm font-medium text-slate-700">{article.journalistName || 'Unknown'}</span>
-        </div>
+          <div className="flex items-center gap-2">
+            <img
+              src={article.journalistImage 
+                ? `http://localhost:5000${article.journalistImage}`
+                : khulashaLogo
+              }
+              alt={article.journalistName || "Khulasha Nepal"}
+              className={article.journalistImage 
+                            ? "w-10 h-10 rounded-full object-cover border border-blue-600 border-3" 
+                            : "w-12 h-12 object-contain rounded-full object-contain border border-blue-600 border-3"
+              }
+            />
+            <span className="text-sm font-medium text-slate-700">{article.journalistName || 'Unknown'}</span>
+          </div>
           <div className="flex items-center gap-1 text-slate-500 text-xs">
-            <Calendar size={12} />
-            <span>{formatDate(article.publishedDate)}</span>
+            <Clock size={12} />
+            <span>{getTimeAgo(article.publishedDate)}</span>
           </div>
         </div>
       </div>

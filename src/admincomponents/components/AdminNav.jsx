@@ -9,7 +9,7 @@ const AdminNav = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState({});
 
-  const user = { email: 'admin@khulasha.com' };
+  const user = { email: 'khulasha@gmail.com' };
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
@@ -41,7 +41,7 @@ const menuItems = useMemo(
       subItems: [],
     },
     {
-      name: 'Local',
+      name: 'Manage news',
       path: '/admin/local',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

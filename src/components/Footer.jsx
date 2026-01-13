@@ -40,8 +40,8 @@ function Footer() {
     );
   };
 
-  if (loading) return <footer className="bg-[#0a2540] text-white py-12 text-center">Loading...</footer>;
-  if (error) return <footer className="bg-[#0a2540] text-white py-12 text-center text-red-400">{error}</footer>;
+  if (loading) return <footer className="bg-[#0a2540] text-white py-12 text-center text-lg">Loading...</footer>;
+  if (error) return <footer className="bg-[#0a2540] text-white py-12 text-center text-red-400 text-lg">{error}</footer>;
 
   const linkColumns = splitLinksIntoColumns(footerData.usefulLinks || []);
 
@@ -56,27 +56,27 @@ function Footer() {
             <div className="text-center md:text-left">
               {footerData.logoUrl && (
                 <div className="mb-4 inline-block bg-white rounded-lg px-4 py-2 shadow-lg">
-                  <img src={footerData.logoUrl} alt="Logo" className="h-16 w-auto object-contain" />
+                  <img src={footerData.logoUrl} alt="Logo" className="h-20 w-30 object-cover" />
                 </div>
               )}
               <div className="space-y-3 mt-4">
                 {footerData.phone && (
                   <div className="flex items-center justify-center md:justify-start gap-3">
-                    <FaPhone className="text-blue-300" />
-                    <span className="text-sm">{footerData.phone}</span>
+                    <FaPhone className="text-blue-300 text-lg" />
+                    <span className="text-base">{footerData.phone}</span>
                   </div>
                 )}
                 {footerData.email && (
                   <div className="flex items-center justify-center md:justify-start gap-3">
-                    <FaEnvelope className="text-blue-300" />
-                    <span className="text-sm">{footerData.email}</span>
+                    <FaEnvelope className="text-blue-300 text-lg" />
+                    <span className="text-base">{footerData.email}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Team Info */}
-            <div className="text-center md:text-left space-y-1 text-sm">
+            <div className="text-center md:text-left space-y-1 text-base">
               {footerData.chairman && <p>अध्यक्ष/प्रधान सम्पादक: <strong>{footerData.chairman}</strong></p>}
               {footerData.itEditor && <p>सूचना प्रविधि सम्पादक: <strong>{footerData.itEditor}</strong></p>}
               {footerData.legalAdvisor && <p>कानूनी सल्लाहकार: <strong>{footerData.legalAdvisor}</strong></p>}
@@ -85,14 +85,14 @@ function Footer() {
             </div>
 
             {/* Company Info */}
-            <div className="text-center space-y-1 text-sm">
+            <div className="text-center space-y-1 text-base">
               {footerData.companyName && <p className="font-bold">{footerData.companyName}</p>}
               {footerData.address && <p>ठेगाना: {footerData.address}</p>}
               {footerData.pressName && <p>प्रिन्ट: {footerData.pressName}</p>}
             </div>
 
             {/* Registration Numbers */}
-            <div className="text-center md:text-right space-y-1 text-sm">
+            <div className="text-center md:text-right space-y-1 text-base">
               {footerData.departmentRegNo && <p>सूचना विभाग दर्ता नं.<br /><strong>{footerData.departmentRegNo}</strong></p>}
               {footerData.pressCouncilNo && <p>प्रेस काउन्सिल नेपाल सूचीकरण नं.<br /><strong>{footerData.pressCouncilNo}</strong></p>}
             </div>
@@ -107,7 +107,7 @@ function Footer() {
               {linkColumns.map((column, i) => (
                 <ul key={i} className="space-y-2 text-center">
                   {column.map((link, j) => (
-                    <li key={j} className="text-blue-200 hover:text-white transition">
+                    <li key={j} className="text-blue-200 hover:text-white transition text-base">
                       <a href={link.url || '#'} target="_blank" rel="noopener noreferrer">
                         • {link.text}
                       </a>
@@ -120,27 +120,24 @@ function Footer() {
         )}
 
         {/* Bottom Bar */}
-{/* Bottom Bar */}
-<div className="mt-8 pt-6 border-t border-gray-700">
-  <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
-    {/* Our Team Button - NOW NAVIGATES */}
-    <button 
-      onClick={() => window.location.href = '/ourteam'}
-      className="bg-white text-[#0a2540] px-8 py-3 rounded-full font-bold shadow-lg hover:bg-gray-100 transition cursor-pointer"
-    >
-      Our Team
-    </button>
+        <div className="mt-8 pt-6 border-t border-gray-700">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
+            {/* Our Team Button - NOW NAVIGATES */}
+            <button 
+              onClick={() => window.location.href = '/ourteam'}
+              className="bg-white text-[#0a2540] px-8 py-3 rounded-full font-bold shadow-lg hover:bg-gray-100 transition cursor-pointer text-base"
+            >
+              Our Team
+            </button>
 
-    {footerData.phone && (
-      <div className="text-center">
-        <p className="text-sm text-gray-400">For advertisement contact</p>
-        <p className="text-lg font-bold">{footerData.phone}</p>
-      </div>
-    )}
-
-    {/* Rest stays same... */}
-  </div>
-</div>
+            {footerData.phone && (
+              <div className="text-center">
+                <p className="text-base text-gray-400">For advertisement contact</p>
+                <p className="text-lg font-bold">{footerData.phone}</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </footer>
   );

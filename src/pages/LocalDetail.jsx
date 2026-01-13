@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, User, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
+import { Calendar, Clock, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin, MessageCircle, Share, MessageCircleCode} from 'lucide-react';
 import khulashaLogo from '../assets/image/khulashalogo.png';
+import { FaTiktok } from 'react-icons/fa';
+import NepaliDate from 'nepali-date-converter';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 function LocalDetail() {
@@ -74,35 +76,112 @@ const fetchArticleDetail = async () => {
 
 
 
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const published = new Date(date);
-    const diffInMs = now - published;
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+const toNepaliNumber = (num) => {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return num.toString().split('').map(digit => nepaliDigits[digit]).join('');
+};
 
-    if (diffInHours < 1) return 'भर्खरै';
-    if (diffInHours < 24) return `${diffInHours} घण्टा अघि`;
-    if (diffInDays === 1) return '१ दिन अघि';
-    if (diffInDays < 7) return `${diffInDays} दिन अघि`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} हप्ता अघि`;
-    return `${Math.floor(diffInDays / 30)} महिना अघि`;
-  };
+const getTimeAgo = (dateString) => {
+  const now = new Date();
+  const published = new Date(dateString);
+  const seconds = Math.floor((now - published) / 1000);
+
+  if (seconds < 45) return "भर्खरै";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${toNepaliNumber(minutes)} ${minutes === 1 ? 'मिनेट' : 'मिनेट'} अघि`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${toNepaliNumber(hours)} ${hours === 1 ? 'घण्टा' : 'घण्टा'} अघि`;
+  }
+
+  // After 1 day, show the Nepali date with day and time
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज',
+    'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'
+  ];
+
+  const nepaliDays = [
+    'आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'
+  ];
+
+  const nepaliDate = new NepaliDate(published);
+  const month = nepaliMonths[nepaliDate.getMonth()];
+  const day = toNepaliNumber(nepaliDate.getDate());
+  const dayOfWeek = nepaliDays[published.getDay()];
+
+  // Get the time in 12-hour format
+  let hours12 = published.getHours();
+  const mins = published.getMinutes();
+  const ampm = hours12 >= 12 ? 'अपराह्न' : 'पूर्वाह्न';
+  hours12 = hours12 % 12;
+  hours12 = hours12 ? hours12 : 12; // Convert 0 to 12
+
+  const formattedTime = `${toNepaliNumber(hours12)}:${toNepaliNumber(mins.toString().padStart(2, '0'))} ${ampm}`;
+
+  return `${month} ${day} ${dayOfWeek}, ${formattedTime}`;
+};
 
   const handleShare = (platform) => {
     const url = window.location.href;
     const title = article?.title || 'Local News';
     
-    const shareUrls = {
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`
-    };
+  let shareUrl = '';
+  let useClipboard = false;
 
-    if (shareUrls[platform]) {
-      window.open(shareUrls[platform], '_blank', 'width=600,height=400');
-    }
-  };
+  switch (platform) {
+    case 'facebook':
+      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+      break;
+    case 'twitter':
+      shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+      break;
+    case 'whatsapp':
+      shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(title + '\n\n' + url)}`;
+      break;
+    case 'viber':
+      shareUrl = `viber://forward?text=${encodeURIComponent(title + '\n\n' + url)}`;
+      break;
+    case 'tiktok':
+      shareUrl = `https://www.tiktok.com/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
+      break;
+
+    case 'share': 
+      useClipboard = true;
+      break;
+
+    default:
+      return;
+  }
+
+  if (useClipboard) {
+    // Copy to clipboard
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        alert('लिङ्क क्लिपबोर्डमा कपी गरियो!'); 
+        // Optional: You can also try Web Share API first
+        if (navigator.share) {
+          navigator.share({
+            title: title,
+            text: title,
+            url: url
+          }).catch(err => {
+            console.log('Web Share failed:', err);
+          });
+        }
+      })
+      .catch(err => {
+        console.error('Failed to copy:', err);
+        alert('लिङ्क कपी गर्न सकिएन। कृपया म्यानुअल रूपमा कपी गर्नुहोस्।');
+      });
+  } else if (shareUrl) {
+    window.open(shareUrl, '_blank', 'width=600,height=500,noreferrer');
+  }
+};
+
 
   const navigateToArticle = (item) => {
     navigate(`/${item.category}/${item.id}`);
@@ -160,13 +239,7 @@ const fetchArticleDetail = async () => {
           <div className="lg:col-span-2">
             <article className="bg-white rounded-2xl shadow-lg overflow-hidden">
               {/* Featured Image */}
-              {article.image && (
-                <img
-                  src={getImageUrl(article.image)}
-                  alt={article.title}
-                  className="w-full h-96 object-cover"
-                />
-              )}
+
 
               <div className="p-8">
                 {/* Title */}
@@ -192,13 +265,13 @@ const fetchArticleDetail = async () => {
                       }
                       alt={article.journalistName || "Khulasha Nepal"}
                       className={article.journalistImage 
-                        ? "w-12 h-12 rounded-full object-cover border-2 border-gray-200" 
-                        : "w-12 h-12 object-contain"
+                            ? "w-10 h-10 rounded-full object-cover border border-blue-600 border-3" 
+                            : "w-12 h-12 object-contain rounded-full object-contain border border-blue-600 border-3"
                       }
                     />
                     <div>
                       <p className="font-semibold text-gray-900">{article.journalistName || 'अज्ञात लेखक'}</p>
-                      <p className="text-sm text-gray-500">पत्रकार</p>
+                      <p className="text-sm text-gray-500"></p>
                     </div>
                   </div>
 
@@ -220,10 +293,16 @@ const fetchArticleDetail = async () => {
                     <span>{getTimeAgo(article.publishedDate)}</span>
                   </div>
                 </div>
-
+                {article.image && (
+                <img
+                  src={getImageUrl(article.image)}
+                  alt={article.title}
+                  className="w-full h-96 object-cover"
+                />
+              )}
                 {/* Share Buttons */}
-                <div className="flex items-center gap-4 mb-8">
-                  <span className="text-gray-600 font-medium">साझेदारी गर्नुहोस्:</span>
+                <div className="flex items-center gap-4 mb-5 mt-5">
+                  <span className="text-gray-600 font-medium">सेयर:</span>
                   <button
                     onClick={() => handleShare('facebook')}
                     className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -238,15 +317,36 @@ const fetchArticleDetail = async () => {
                   >
                     <Twitter size={20} />
                   </button>
-                  <button
-                    onClick={() => handleShare('linkedin')}
-                    className="p-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition"
-                    title="Share on LinkedIn"
-                  >
-                    <Linkedin size={20} />
-                  </button>
+                 <button
+                 onClick={() => handleShare('whatsapp')}
+                 className="p-2  text-white bg-green-500  rounded-lg hover:bg-green-800 transition"
+                 title="share on Whatsapp"
+                 >
+                 <MessageCircle size={20}/>
+                 </button>
+                 <button
+                 onClick={() => handleShare('viber')}
+                 className="p-2  text-white bg-purple-500  rounded-lg hover:bg-purple-800 transition"
+                 title="share on viber"
+                 >
+                 <MessageCircle size={20}/>
+                 </button>
+                 <button
+                 onClick={() => handleShare('tiktok')}
+                 className="p-2 bg-gray-900 text-white rounded-lg"
+                 title="share on tiktok"
+                 >
+                 <FaTiktok size={20}/>
+                 </button>
+                 <button
+                 onClick={() => handleShare('share')}
+                 className="p-2 bg-gray-300 text-black-950 hover:bg-gray-600 transition rounded-lg"
+                 title="share"
+                 >
+                 <Share size={20}/>
+                                
+                 </button>
                 </div>
-
                 {/* Content */}
                 {article.paragraph && (
                   <div 
@@ -265,7 +365,8 @@ const fetchArticleDetail = async () => {
               {relatedArticles.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <h3 className="text-2xl font-bold mb-6 text-gray-900">सम्बन्धित समाचार</h3>
-                  <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
+
                     {relatedArticles.map((item) => (
                       <div
                         key={item.id}
@@ -300,7 +401,7 @@ const fetchArticleDetail = async () => {
             <section className="bg-white rounded-2xl shadow-lg p-8">
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">थप समाचारहरू</h2>
-                <p className="text-gray-600">सबै श्रेणीबाट छनोट गरिएका समाचारहरू</p>
+                
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -316,10 +417,7 @@ const fetchArticleDetail = async () => {
                         alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />
-                      {/* Category Badge */}
-                      <div className={`absolute top-3 left-3 ${getCategoryColor(item.category)} text-white px-3 py-1 rounded-full text-xs font-semibold`}>
-                        {item.categoryNepali}
-                      </div>
+
                     </div>
                     
                     <div className="p-4">
@@ -334,16 +432,7 @@ const fetchArticleDetail = async () => {
                       )}
                       
                       <div className="flex items-center justify-between text-sm text-gray-500">
-                        <div className="flex items-center gap-2">
-                          {item.journalistImage && (
-                            <img 
-                              src={getImageUrl(item.journalistImage)} 
-                              alt={item.journalistName}
-                              className="w-6 h-6 rounded-full object-cover"
-                            />
-                          )}
-                          <span className="truncate">{item.journalistName}</span>
-                        </div>
+
                         <span>{getTimeAgo(item.publishedDate)}</span>
                       </div>
                     </div>

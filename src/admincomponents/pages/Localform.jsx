@@ -331,7 +331,7 @@ const Localform = () => {
               </button>
               <button
                 onClick={() => {
-                  window.location.href = '/admin/news';
+                  window.location.href = '/admin/local';
                 }}
                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold transition"
               >

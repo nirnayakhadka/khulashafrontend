@@ -1,4 +1,4 @@
-// Main.jsx
+// Main.jsx - WITH CACHING
 import React, { useState, useEffect } from 'react';
 import NewsHome from './NewsHome';
 import MoreHome from './MoreHome';
@@ -8,15 +8,32 @@ import SportsHome from './SportsHome';
 import MainHome from './MainHome';
 import axiosInstance from '../api/axios';
 
+// ✅ CACHE OUTSIDE COMPONENT (persists between renders)
+let cachedData = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
+
 function Main() {
-  const [sections, setSections] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [sections, setSections] = useState(cachedData); // Start with cached data
+  const [loading, setLoading] = useState(!cachedData); // No loading if cached
 
   useEffect(() => {
     const fetchHomepage = async () => {
       try {
-        // Single call - gets all sections with no duplicates
+        // Check if cache is still valid
+        const now = Date.now();
+        if (cachedData && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
+          console.log('✅ Using cached data');
+          return; // Use existing cache
+        }
+
+        console.log('🔄 Fetching fresh data');
         const response = await axiosInstance.get('/news/homepage');
+        
+        // Update cache
+        cachedData = response.data;
+        cacheTimestamp = Date.now();
+        
         setSections(response.data);
       } catch (error) {
         console.error('Error:', error);
@@ -29,7 +46,14 @@ function Main() {
   }, []);
 
   if (loading) {
-    return <div className="text-center py-20">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading news...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -192,7 +192,7 @@ const MainDetail = () => {
                     />
                     <div>
                       <p className="font-semibold text-gray-900">{news.journalistName || 'अज्ञात लेखक'}</p>
-                      <p className="text-sm text-gray-500">पत्रकार</p>
+                     
                     </div>
                   </div>
 
