@@ -34,7 +34,7 @@ function Setting() {
 
   const fetchProfile = async () => {
     try {
-      const response = await axiosInstance.get('/admin/profile');
+      const response = await axiosInstance.get('/api/admin/profile');
       setAdmin(response.data.admin);
       setFormData(prev => ({ ...prev, email: response.data.admin.email }));
       setLoading(false);
@@ -137,7 +137,7 @@ function Setting() {
         updateData.currentPassword = formData.currentPassword;
       }
 
-      await axiosInstance.put(`/admin/${admin.id}`, updateData);
+      await axiosInstance.put(`/api/admin/${admin.id}`, updateData);
 
       setMessage({ type: 'success', text: 'Settings updated successfully!' });
       

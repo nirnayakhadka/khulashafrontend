@@ -410,7 +410,7 @@ function Ourteamsetting() {
   const fetchTeamMembers = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/team?includeInactive=true');
+      const response = await axiosInstance.get('/api/team?includeInactive=true');
       setTeamMembers(response.data.team || []);
       setError(null);
     } catch (err) {
@@ -443,7 +443,7 @@ function Ourteamsetting() {
     }
 
     try {
-      await axiosInstance.delete(`/team/${member.id}`);
+      await axiosInstance.delete(`/api/team/${member.id}`);
       setTeamMembers(teamMembers.filter(m => m.id !== member.id));
       showToast('Team member deleted successfully', 'success');
     } catch (err) {
@@ -453,7 +453,7 @@ function Ourteamsetting() {
 
   const handleToggleActive = async (member) => {
     try {
-      await axiosInstance.patch(`/team/${member.id}/toggle`);
+      await axiosInstance.patch(`/api/team/${member.id}/toggle`);
       setTeamMembers(teamMembers.map(m => 
         m.id === member.id ? { ...m, isActive: !m.isActive } : m
       ));
@@ -466,7 +466,7 @@ function Ourteamsetting() {
   const handleSaveMember = async (formData) => {
     try {
       if (editingMember) {
-        const response = await axiosInstance.put(`/team/${editingMember.id}`, formData, {
+        const response = await axiosInstance.put(`/api/team/${editingMember.id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setTeamMembers(teamMembers.map(m => 
@@ -474,7 +474,7 @@ function Ourteamsetting() {
         ));
         showToast('Team member updated successfully', 'success');
       } else {
-        const response = await axiosInstance.post('/team', formData, {
+        const response = await axiosInstance.post('/api/team', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setTeamMembers([...teamMembers, response.data.team]);

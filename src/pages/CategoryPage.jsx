@@ -30,7 +30,7 @@ function CategoryPage() {
       setError(null);
       
       // Fetch articles for this specific category
-      const response = await axiosInstance.get(`/news/category/${category}`);
+      const response = await axiosInstance.get(`/api/news/category/${category}`);
       
       if (response.data.success) {
         const articles = Array.isArray(response.data.data) ? response.data.data : [];

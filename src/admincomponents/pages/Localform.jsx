@@ -126,7 +126,7 @@ const Localform = () => {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true);
-        const response = await axiosInstance.get('/categories');
+        const response = await axiosInstance.get('/api/categories');
         const activeCategories = response.data.categories || [];
         setCategories(activeCategories);
 
@@ -249,7 +249,7 @@ const Localform = () => {
       formDataToSend.append('category', formData.category);
       formDataToSend.append('isFeatured', formData.isFeatured);
 
-      const response = await axiosInstance.post('/news', formDataToSend, {
+      const response = await axiosInstance.post('/api/news', formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 

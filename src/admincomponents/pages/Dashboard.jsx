@@ -33,7 +33,7 @@ const Dashboard = () => {
     setError(null);
     try {
       // Fetch all news articles (they contain category field)
-      const res = await fetch(`${API_URL}/news`, {
+      const res = await fetch(`${API_URL}/api/news`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 

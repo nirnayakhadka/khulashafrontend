@@ -32,7 +32,7 @@ function Authors() {
   const fetchAdmins = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/admin');
+      const response = await axiosInstance.get('/api/admin');
       setAdmins(response.data.admins);
       setError('');
     } catch (err) {
@@ -45,7 +45,7 @@ function Authors() {
   // Create invitation
   const handleCreateInvitation = async () => {
     try {
-      const response = await axiosInstance.post('/admin/invitations/create');
+      const response = await axiosInstance.post('/api/admin/invitations/create');
       setInvitationToken(response.data.token);
       setShowInviteModal(true);
       setSuccessMessage('Invitation created successfully!');
@@ -91,7 +91,7 @@ function Authors() {
 
     try {
       setLoading(true);
-      const response = await axiosInstance.post('/admin', {
+      const response = await axiosInstance.post('/api/admin', {
         email: createForm.email,
         password: createForm.password,
         role: createForm.role
@@ -141,7 +141,7 @@ function Authors() {
         updateData.currentPassword = editForm.currentPassword;
       }
 
-      await axiosInstance.put(`/admin/${selectedAdmin.id}`, updateData);
+      await axiosInstance.put(`/api/admin/${selectedAdmin.id}`, updateData);
       setSuccessMessage('Admin updated successfully!');
       setShowEditModal(false);
       fetchAdmins();
@@ -158,7 +158,7 @@ function Authors() {
     }
 
     try {
-      await axiosInstance.delete(`/admin/${id}`);
+      await axiosInstance.delete(`/api/admin/${id}`);
       setSuccessMessage('Admin deleted successfully!');
       fetchAdmins();
       setTimeout(() => setSuccessMessage(''), 3000);

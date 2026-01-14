@@ -128,7 +128,7 @@ const UnifiedNewsManagement = () => {
   const fetchNews = async () => {
     try {
       setLoadingNews(true);
-      const response = await axiosInstance.get('/news');
+      const response = await axiosInstance.get('/api/news');
       const articles = response.data?.data || response.data?.news || response.data || [];
       setNewsList(articles);
     } catch (error) {
@@ -150,7 +150,7 @@ const UnifiedNewsManagement = () => {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true);
-        const response = await axiosInstance.get('/categories');
+        const response = await axiosInstance.get('/api/categories');
         const activeCategories = response.data.categories || [];
         setCategories(activeCategories);
 
@@ -226,7 +226,7 @@ const UnifiedNewsManagement = () => {
       let response;
       
       if (editingId) {
-        response = await axiosInstance.put(`/news/${editingId}`, formDataToSend, {
+        response = await axiosInstance.put(`/api/news/${editingId}`, formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         console.log('✅ Article updated:', response.data);
@@ -290,7 +290,7 @@ const UnifiedNewsManagement = () => {
 
   const confirmDelete = async () => {
     try {
-      await Promise.all(selectedItems.map(id => axiosInstance.delete(`/news/${id}`)));
+      await Promise.all(selectedItems.map(id => axiosInstance.delete(`/api/news/${id}`)));
       await fetchNews(); // ✅ Refresh list after deletion
       showToast(`${selectedItems.length} article(s) deleted successfully!`);
     } catch (error) {

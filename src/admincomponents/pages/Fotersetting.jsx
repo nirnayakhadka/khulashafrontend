@@ -44,7 +44,7 @@ function FooterSettings() {
 
   const fetchFooters = async () => {
     try {
-      const response = await axiosInstance.get('/footer');
+      const response = await axiosInstance.get('/api/footer');
       
       if (response.data.success) {
         setFooters(response.data.footers);
@@ -127,8 +127,8 @@ function FooterSettings() {
       };
 
       const response = editMode 
-        ? await axiosInstance.put(`/footer/${selectedFooter.id}`, submitData)
-        : await axiosInstance.post('/footer', submitData);
+        ? await axiosInstance.put(`/api/footer/${selectedFooter.id}`, submitData)
+        : await axiosInstance.post('/api/footer', submitData);
 
       if (response.data.success) {
         showAlert(response.data.message, 'success');

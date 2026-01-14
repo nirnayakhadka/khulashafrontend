@@ -263,25 +263,39 @@ function Category() {
     fetchStats();
   }, [isAuthenticated, navigate]);
 
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get('/categories?includeInactive=true&includeProtected=true');
-      setCategories(response.data.categories || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-      setError('Failed to load categories');
-      showToast('Failed to load categories', 'error');
-      setCategories([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchCategories = async () => {
+  try {
+    setLoading(true);
+    console.log('🔍 Fetching categories from: /api/categories');
+    
+    const response = await axiosInstance.get('/api/categories', {
+      params: {
+        includeInactive: 'true',
+        includeProtected: 'true'
+      }
+    });
+    
+    console.log('✅ Categories received:', response.data);
+    setCategories(response.data.categories || []);
+    setError(null);
+  } catch (err) {
+    console.error('❌ Error fetching categories:', err);
+    console.error('Error details:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status
+    });
+    setError('Failed to load categories');
+    showToast('Failed to load categories', 'error');
+    setCategories([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchStats = async () => {
     try {
-      const response = await axiosInstance.get('/categories/stats');
+      const response = await axiosInstance.get('/api/categories/stats');
       const statsMap = {};
       response.data.stats.forEach(stat => {
         statsMap[stat.id] = stat.newsCount;
@@ -324,7 +338,7 @@ function Category() {
     }
 
     try {
-      await axiosInstance.delete(`/categories/${category.id}`);
+      await axiosInstance.delete(`/api/categories/${category.id}`);
       setCategories(categories.filter(c => c.id !== category.id));
       showToast('Category deleted successfully', 'success');
       fetchStats();
@@ -336,7 +350,7 @@ function Category() {
 
   const handleToggleActive = async (category) => {
     try {
-      await axiosInstance.patch(`/categories/${category.id}/toggle`);
+      await axiosInstance.patch(`/api/categories/${category.id}/toggle`);
       setCategories(categories.map(c => 
         c.id === category.id ? { ...c, isActive: !c.isActive } : c
       ));
@@ -349,13 +363,13 @@ function Category() {
   const handleSaveCategory = async (categoryData) => {
     try {
       if (editingCategory) {
-        const response = await axiosInstance.put(`/categories/${editingCategory.id}`, categoryData);
+        const response = await axiosInstance.put(`/api/categories/${editingCategory.id}`, categoryData);
         setCategories(categories.map(c => 
           c.id === editingCategory.id ? response.data.category : c
         ));
         showToast('Category updated successfully', 'success');
       } else {
-        const response = await axiosInstance.post('/categories', categoryData);
+        const response = await axiosInstance.post('/api/categories', categoryData);
         setCategories([...categories, response.data.category]);
         showToast('Category created successfully', 'success');
       }
